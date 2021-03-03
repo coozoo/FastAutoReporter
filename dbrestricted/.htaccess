@@ -1,0 +1,4 @@
+Authtype Basic
+AuthName "Password Protected"
+AuthUserFile /var/www/html/myreporter/dbrestricted/.htpasswd
+Require valid-user
