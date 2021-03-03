@@ -28,14 +28,12 @@
     preg_match_all('!\d+!', $caseid, $matches);
     $caseid=$matches[0][0];
     require 'stuff/testrail.php';
+///////////// Testrail config
     $testrailhost='https://testrail.anzogroup.com/';
     $client = new TestRailAPIClient("$testrailhost");
-//    $client = new TestRailAPIClient('https://testrail.gamesys.co.uk/');
-    //$client->set_user('iurii.kuzin');
-    $client->set_user('sys_onseo_testrail@onseo.biz');
-    //$client->set_password('happiness#39');
-    //$client->set_password('8n5eD4Hq');
-    $client->set_password('Test.1234');
+    $client->set_user('UserAccount');
+    $client->set_password('UserPassword');
+////////////
     $case = $client->send_get("get_case/$caseid");
     $suite = $client->send_get("get_suite/".$case['suite_id']);
     //var_dump($suite);
