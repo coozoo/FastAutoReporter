@@ -67,4 +67,38 @@ You can add user to `.htpasswd` by:
 $ htpasswd /var/www/html/myreporter/dbrestricted/.htpasswd newuser
 ```
 
+### Paiges short description
 
+**blame.php** - view that represents most fails and who is responsible for tests;
+
+**dbprocesslist.php** - list current DB tasks;
+
+**downloadrunlogs.php** - download zip file with all logs;
+
+**feature.php** - simply call suite.php in another view mode;
+
+**getblob.php** - image loader;
+
+**getrunstatus.php** - status of test run;
+
+**gettestrailcase.php** - preview testrail case;
+
+**index.php** - main page with filters;
+
+**mysqli_connection.php** - mysql connector;
+
+**runs.php** - list of tables;
+
+**statuspiechart.php** - pie chart with amount of success, fails for suite view;
+
+**suite.php** - maine view to see results of testrun;
+
+**systeminfo.php** - DB info and task manager;
+
+**testdetails.php** - info about test;
+
+**testhistory.php** - show history for some test case;
+
+**testresultschart.php**  - this will beld stats for filtered test runs (accept post parameters only);
+
+**testvideo.php** - video loader.
