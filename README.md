@@ -39,7 +39,7 @@ Open mysqli_connection.php and assign your values instead of this:
 ```
 #### Testrail configuration
 
-Open gettestrailcase.php find and assign you credentials inside:
+Open gettestrailcase.php find and assign your credentials inside:
 
 ```php
     $testrailhost='https://testrail.anzogroup.com/';
@@ -47,4 +47,24 @@ Open gettestrailcase.php find and assign you credentials inside:
     $client->set_user('UserAccount');
     $client->set_password('UserPassword');
 ```
+#### Restricted Access
+
+Some file it's better to restrict access by password.
+
+For example `dbrestricted` folder contains `killprocess.php` that allows to kill DB tasks.
+
+To do that create `.htaccess` file:
+
+```bash
+$ cat .htaccess 
+Authtype Basic
+AuthName "Password Protected"
+AuthUserFile /var/www/html/myreporter/dbrestricted/.htpasswd
+Require valid-user
+```
+You can add user to `.htpasswd` by:
+```bash
+$ htpasswd /var/www/html/myreporter/dbrestricted/.htpasswd newuser
+```
+
 
