@@ -300,9 +300,14 @@ write_buffer=2M
 ```
 </details>
 
-## DB initialization
+## DB Initialization
 
 Use phpmyadmin to import tables, procedures and events (all objects important for dunctionality)
 
 reporterdb.sql - contains everything you need to import
 
+## DB Structure
+
+Tables structure
+
+<img src="https://user-images.githubusercontent.com/25594311/109930953-e6abe980-7cd0-11eb-93ea-825ab3d43be7.png" width="60%"></img>
