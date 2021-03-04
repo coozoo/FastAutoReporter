@@ -107,6 +107,11 @@ $ htpasswd /var/www/html/myreporter/dbrestricted/.htpasswd newuser
 
 MariaDB prefarable.
 
+<details>
+  <summary>
+    summary
+  </summary>
+
 ```ini
 # Example MySQL config file for small systems.
 #
@@ -292,4 +297,5 @@ write_buffer=2M
 
 [mysqlhotcopy]
 
-``
+```
+</details>
