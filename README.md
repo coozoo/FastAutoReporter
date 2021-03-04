@@ -391,4 +391,29 @@ Here list of procedures used in project, purpose and examples how to call them:
        <i>call get_feature(NULL,'6a6b304f-6ca7-46c4-a6aa-305258924706')</i> - returns list of testcases by run UUID<br>
 </details>
 
+<details>
+  <summary>
+    <b>get_runs</b> - procedure returns all runs filtered by criterias.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>userenv</i> VARCHAR(255)</b> - environment name;<br>
+       <b>IN <i>limitstartrow</i> INT</b> - filter out rows before from (used for pagination);<br>
+       <b>IN <i>limitnumberofrows</i> INT</b> - filter out rows after this (used for pagination);<br>
+       <b>IN <i>testtypeid</i> INT</b> - test type ID (Backend, Frontend);<br>
+       <b>IN <i>teamid</i> INT</b> - filter by team id;<br>
+       <b>IN <i>featureid</i> INT</b> - not used (and I suppose it is bad idea to use it);<br>
+       <b>IN <i>startdate</i> DATETIME</b> - filter out everything before this date;<br>
+       <b>IN <i>enddate</i> DATETIME</b> - filter out everything after this date;<br>
+       <b>IN <i>isdevrun</i> BOOL</b> - include dev runs tor result;<br>
+       <b>IN <i>equalrunname</i> VARCHAR(255)</b> - filter by exact run name;<br>
+       <b>IN <i>likerunname</i> VARCHAR(255)</b> - filter by run names that contains value;<br>
+       <b>IN <i>equalversion</i> LONGTEXT</b> - filter by exact version;<br>
+       <b>IN <i>likeversion</i> LONGTEXT</b> - filter by part of version;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_runs(NULL,0,30,NULL,NULL,NULL,'2021-01-13 08:23',NULL,false,NULL,NULL,'','');</i> - filter by start date and return  only 30 rows<br>
+       <i>call get_runs('DEV',30,60,NULL,NULL,NULL,'2021-01-13 08:23',2021-02-13 08:23,false,NULL,NULL,'','');</i> - filter results between date range by environment and return  30 items after first 30<br>
+       <i>call get_runs(NULL,0,30,1,1,NULL,'2021-01-13 08:23',NULL,true,NULL,NULL,'','');</i> - return results including dev runs filtered by test type ID and teamid<br>
+       <i>call get_runs(NULL,0,30,1,1,NULL,'2021-01-13 08:23',NULL,true,NULL,'LBA_DEV_Functional','','')</i> - filter by part of run name<br>
+</details>
+
 ### Events
