@@ -314,6 +314,8 @@ reporterdb.sql - contains everything you need to import
 
 ### Procedures
 
+Here list of procedures used in project, purpose and examples how to call them:
+
 <details>
   <summary>
     <b>close_running</b> - procedure that estimates common run time for test run and if it is exceeded this test run state will be changed to completed.<br>
@@ -375,6 +377,18 @@ reporterdb.sql - contains everything you need to import
        <i>call get_blamed(1,'FAIL,ERROR',NULL,NULL,NULL)</i> - returns stats of failed test cases by dev for one 1 since now<br>
        <i>call get_blamed(1,'FAIL,ERROR','Developer Name',NULL,3841)</i> - returns stats of failed test cases just for one dev for test run 3841<br>
        <i>call get_blamed(1,'FAIL,ERROR','First DevName,Second DevName',NULL,3841)</i> - returns stats of failed test cases by devs just for two devs in test run 3841<br>
+</details>
+
+<details>
+  <summary>
+    <b>get_feature</b> - procedure returns tests list for run by feature.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>RUNID</i> INT</b> - get tests by run ID;<br>
+       <b>IN <i>UUID</i> VARCHAR(255)</b> - get tests by run UUID (for compatibility with Java part);<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_feature(3841,NULL)</i> - returns list of testcases by run ID<br>
+       <i>call get_feature(NULL,'6a6b304f-6ca7-46c4-a6aa-305258924706')</i> - returns list of testcases by run UUID<br>
 </details>
 
 ### Events
