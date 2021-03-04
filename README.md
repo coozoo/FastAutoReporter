@@ -109,7 +109,7 @@ MariaDB prefarable.
 
 <details>
   <summary>
-    summary
+    Merge this changes to your MariaDB
   </summary>
 
 ```ini
