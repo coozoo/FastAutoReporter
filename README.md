@@ -416,4 +416,26 @@ Here list of procedures used in project, purpose and examples how to call them:
        <i>call get_runs(NULL,0,30,1,1,NULL,'2021-01-13 08:23',NULL,true,NULL,'LBA_DEV_Functional','','')</i> - filter by part of run name<br>
 </details>
 
+<details>
+  <summary>
+    <b>get_run_details</b> - procedure to get brief info about run.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>RUNID</i> INT</b> - get tests by run ID;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_run_details(3841);</i> - get run details by run ID<br>
+</details>
+
+<details>
+  <summary>
+    <b>get_suit</b> - procedure to get detailed info by suits.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>RUNID</i> INT</b> - get tests by run ID;<br>
+       <b>IN <i>UUID</i> VARCHAR(255)</b> - get tests by run UUID (for compatibility with Java part);<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_suit(3841,NULL)</i> - returns suits by run ID<br>
+       <i>call get_suit(NULL,'6a6b304f-6ca7-46c4-a6aa-305258924706')</i> - returns suits by run UUID<br>
+</details>
+
 ### Events
