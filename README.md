@@ -308,6 +308,17 @@ reporterdb.sql - contains everything you need to import
 
 ## DB Structure
 
-Tables structure
+### Tables
 
 <img src="https://user-images.githubusercontent.com/25594311/109930953-e6abe980-7cd0-11eb-93ea-825ab3d43be7.png" width="100%"></img>
+
+### Procedures
+
+<details>
+  <summary>
+    <b>close_running</b> - procedure that estimates common run time for test run and if it is exceeded this test run state will be changed to completed.
+  </summary>
+  
+</details>
+
+### Events
