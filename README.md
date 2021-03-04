@@ -353,17 +353,6 @@ Here list of procedures used in project, purpose and examples how to call them:
 
 <details>
   <summary>
-    <b>delete_old_runs</b> - procedure will delete old test runs.<br>
-  </summary>
-  <br><b><i><u>Parameters:</u></i></b><br>
-       <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted<br>
-       <b>IN <i>is_dev_run</i> BOOL</b> - type of runs to delete;<br>
-  <br><b><i><u>Examples:</u></i></b><br>
-       <i>call delete_old_runs(7,true)</i> - delete dev test tuns older than 7 days<br>
-</details>
-
-<details>
-  <summary>
     <b>get_blamed</b> - procedure returns stats about amount of test cases by developer.<br>
   </summary>
   <br><b><i><u>Parameters:</u></i></b><br>
