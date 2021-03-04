@@ -335,7 +335,18 @@ reporterdb.sql - contains everything you need to import
   <br><b><i><u>Parameters:</u></i></b><br>
        <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted<br>
   <br><b><i><u>Example:</u></i></b><br>
-       call delete_old_logs(30)<br>
+       <i>call delete_old_logs(30)</i> - delete logs older than 30 days<br>
+</details>
+
+<details>
+  <summary>
+    <b>delete_old_runs</b> - procedure will delete old test runs.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted
+       <b>IN <i>is_dev_run</i> BOOL</b> - type of runs to delete;<br>
+  <br><b><i><u>Example:</u></i></b><br>
+       <i>call delete_old_runs(7,true)</i> - delete dev test tuns older than 7 days<br>
 </details>
 
 ### Events
