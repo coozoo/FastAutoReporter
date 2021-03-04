@@ -318,7 +318,14 @@ reporterdb.sql - contains everything you need to import
   <summary>
     <b>close_running</b> - procedure that estimates common run time for test run and if it is exceeded this test run state will be changed to completed.
   </summary>
-  
+  Procedure doesn't require any parameters
+</details>
+
+<details>
+  <summary>
+    <b>close_running</b> - procedure returns currently visible amount of test runs.
+  </summary>
+  All procedure parameters the same as fo `get_runs` (basically it would be good to merge this precedures and return sets but in such case it is required to change php code a bit).
 </details>
 
 ### Events
