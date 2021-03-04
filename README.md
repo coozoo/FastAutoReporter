@@ -371,10 +371,10 @@ reporterdb.sql - contains everything you need to import
        <b>IN <i>teamid</i> INT</b> - team ID, not used in future possible to get stats by teamid;<br>
        <b>IN <i>runid</i> INT</b> - run ID, get stats for specified run;<br>
   <br><b><i><u>Examples:</u></i></b><br>
-       <i>call get_blamed(1,'FAIL,ERROR',NULL,NULL,3841)</i> - returns stats of failed by devs for test run 3841<br>
-       <i>call get_blamed(1,'FAIL,ERROR',NULL,NULL,NULL)</i> - returns stats of failed by devs for one 1 since now<br>
-       <i>call get_blamed(1,'FAIL,ERROR','Developer Name',NULL,3841)</i> - returns stats of failed by devs just for one dev for test run 3841<br>
-       <i>call get_blamed(1,'FAIL,ERROR','First DevName,Second DevName',NULL,3841)</i> - returns stats of failed by devs just for two devs for test run 3841<br>
+       <i>call get_blamed(1,'FAIL,ERROR',NULL,NULL,3841)</i> - returns stats of failed test cases by dev for test run 3841<br>
+       <i>call get_blamed(1,'FAIL,ERROR',NULL,NULL,NULL)</i> - returns stats of failed test cases by dev for one 1 since now<br>
+       <i>call get_blamed(1,'FAIL,ERROR','Developer Name',NULL,3841)</i> - returns stats of failed test cases just for one dev for test run 3841<br>
+       <i>call get_blamed(1,'FAIL,ERROR','First DevName,Second DevName',NULL,3841)</i> - returns stats of failed test cases by devs just for two devs in test run 3841<br>
 </details>
 
 ### Events
