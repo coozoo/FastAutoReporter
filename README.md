@@ -318,7 +318,7 @@ Here list of procedures used in project, purpose and examples how to call them:
 
 <details>
   <summary>
-    <b>close_running</b> - procedure that estimates common run time for test run and if it is exceeded this test run state will be changed to completed.<br>
+    <b>close_running</b> - procedure that estimates common run time for test run and close test run if time is exceeded.<br>
   </summary>
   Procedure doesn't require any parameters
 </details>
