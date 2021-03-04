@@ -299,3 +299,10 @@ write_buffer=2M
 
 ```
 </details>
+
+## DB initialization
+
+Use phpmyadmin to import tables, procedures and events (all objects important for dunctionality)
+
+reporterdb.sql - contains everything you need to import
+
