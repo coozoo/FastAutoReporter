@@ -332,9 +332,9 @@ reporterdb.sql - contains everything you need to import
   <summary>
     <b>delete_old_logs</b> - procedure will delete old logs.<br>
   </summary>
-  <b><i><u>Parameters:</u></i></b><br>
+  <br><b><i><u>Parameters:</u></i></b><br>
        <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted<br>
-  <span  style="color:blue">Example:</span><br>
+  <br><b><i><u>Example:</u></i></b><br>
        call delete_old_logs(30)<br>
 </details>
 
