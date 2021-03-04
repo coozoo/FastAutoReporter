@@ -310,4 +310,4 @@ reporterdb.sql - contains everything you need to import
 
 Tables structure
 
-<img src="https://user-images.githubusercontent.com/25594311/109930953-e6abe980-7cd0-11eb-93ea-825ab3d43be7.png" width="60%"></img>
+<img src="https://user-images.githubusercontent.com/25594311/109930953-e6abe980-7cd0-11eb-93ea-825ab3d43be7.png" width="80%"></img>
