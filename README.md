@@ -323,9 +323,19 @@ reporterdb.sql - contains everything you need to import
 
 <details>
   <summary>
-    <b>close_running</b> - procedure returns currently visible amount of test runs.
+    <b>count_runs</b> - procedure returns currently visible amount of test runs.
   </summary>
   All procedure parameters the same as fo `get_runs` (basically it would be good to merge this precedures and return sets but in such case it is required to change php code a bit).
+</details>
+
+<details>
+  <summary>
+    <b>delete_old_logs</b> - procedure will delete old logs.
+  </summary>
+  <i>Parameters:</i>
+       IN `number_of_days` INT - number of days, everything older than this amount of days will be deleted
+  <i>Example:</i>
+       call delete_old_logs(30)
 </details>
 
 ### Events
