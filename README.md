@@ -334,7 +334,7 @@ reporterdb.sql - contains everything you need to import
   </summary>
   <br><b><i><u>Parameters:</u></i></b><br>
        <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted<br>
-  <br><b><i><u>Example:</u></i></b><br>
+  <br><b><i><u>Examples:</u></i></b><br>
        <i>call delete_old_logs(30)</i> - delete logs older than 30 days<br>
 </details>
 
@@ -343,10 +343,38 @@ reporterdb.sql - contains everything you need to import
     <b>delete_old_runs</b> - procedure will delete old test runs.<br>
   </summary>
   <br><b><i><u>Parameters:</u></i></b><br>
-       <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted
+       <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted<br>
        <b>IN <i>is_dev_run</i> BOOL</b> - type of runs to delete;<br>
-  <br><b><i><u>Example:</u></i></b><br>
+  <br><b><i><u>Examples:</u></i></b><br>
        <i>call delete_old_runs(7,true)</i> - delete dev test tuns older than 7 days<br>
+</details>
+
+<details>
+  <summary>
+    <b>delete_old_runs</b> - procedure will delete old test runs.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted<br>
+       <b>IN <i>is_dev_run</i> BOOL</b> - type of runs to delete;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call delete_old_runs(7,true)</i> - delete dev test tuns older than 7 days<br>
+</details>
+
+<details>
+  <summary>
+    <b>get_blamed</b> - procedure returns stats about amount of test cases by developer.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>days</i> INT</b> - number of days, will gather stat for such amount of days;<br>
+       <b>IN <i>statuses</i> TEXT</b> - statuses list separated by comma (FAIL,ERROR,PASS,SKIP);<br>
+       <b>IN <i>who</i> TEXT</b> - developer names separated by comma;<br>
+       <b>IN <i>teamid</i> INT</b> - team ID, not used in future possible to get stats by teamid;<br>
+       <b>IN <i>runid</i> INT</b> - run ID, get stats for specified run;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_blamed(1,'FAIL,ERROR',NULL,NULL,3841)</i> - returns stats of failed by devs for test run 3841<br>
+       <i>call get_blamed(1,'FAIL,ERROR',NULL,NULL,NULL)</i> - returns stats of failed by devs for one 1 since now<br>
+       <i>call get_blamed(1,'FAIL,ERROR','Developer Name',NULL,3841)</i> - returns stats of failed by devs just for one dev for test run 3841<br>
+       <i>call get_blamed(1,'FAIL,ERROR','First DevName,Second DevName',NULL,3841)</i> - returns stats of failed by devs just for two devs for test run 3841<br>
 </details>
 
 ### Events
