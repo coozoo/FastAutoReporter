@@ -437,4 +437,17 @@ Here list of procedures used in project, purpose and examples how to call them:
        <i>call get_test_details(169222)</i> - returns logs by test ID<br>
 </details>
 
+<details>
+  <summary>
+    <b>get_test_history</b> - procedure to return test case execution history.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>RUNNAME</i> VARCHAR(255)</b> - test run name;<br>
+       <b>IN <i>TESTNAME</i> VARCHAR(255)</b> - test case name;<br>
+       <b>IN <i>startdate</i> DATETIME</b> - date from;<br>
+       <b>IN <i>enddate</i> DATETIME</b> - date till;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_test_history('LBA_DEV_Functional','successfulLoginLBA','2021-01-13 08:23',NULL)</i> - returns execution history by names from date<br>
+</details>
+
 ### Events
