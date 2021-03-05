@@ -29,7 +29,7 @@ Currently there is no one place config.
 
 #### DB configuration
 
-Open mysqli_connection.php and assign your values instead of this:
+Open `mysqli_connection.php` and assign your values instead of this:
 
 ```php
 	$dbhost = "DBHOST";
@@ -39,7 +39,7 @@ Open mysqli_connection.php and assign your values instead of this:
 ```
 #### Testrail configuration
 
-Open gettestrailcase.php find and assign your credentials inside:
+Open `gettestrailcase.php` find and assign your credentials inside:
 
 ```php
     $testrailhost='https://testrail.anzogroup.com/';
