@@ -427,4 +427,14 @@ Here list of procedures used in project, purpose and examples how to call them:
        <i>call get_suit(NULL,'6a6b304f-6ca7-46c4-a6aa-305258924706')</i> - returns suits by run UUID<br>
 </details>
 
+<details>
+  <summary>
+    <b>get_test_details</b> - procedure to return list of logs for test case.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>TESTID</i> INT</b> - get logs by test ID;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_test_details(169222)</i> - returns logs by test ID<br>
+</details>
+
 ### Events
