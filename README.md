@@ -42,7 +42,7 @@ Open `mysqli_connection.php` and assign your values instead of this:
 Open `gettestrailcase.php` find and assign your credentials inside:
 
 ```php
-    $testrailhost='https://testrail.anzogroup.com/';
+    $testrailhost='https://url.com/';
     $client = new TestRailAPIClient("$testrailhost");
     $client->set_user('UserAccount');
     $client->set_password('UserPassword');
