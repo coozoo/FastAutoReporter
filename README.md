@@ -1,4 +1,4 @@
-# FastAutoReporter
+# Fast Automation Reporter
 
 ## Installation
 
