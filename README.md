@@ -49,11 +49,11 @@ Open gettestrailcase.php find and assign your credentials inside:
 ```
 #### Restricted Access
 
-Some file it's better to restrict access by password.
+For some files it's better to restrict access by password.
 
-For example `dbrestricted` folder contains `killprocess.php` that allows to kill DB tasks.
+For example `dbrestricted` folder contains `killprocess.php` that allows to kill DB tasks sure it's better to protect it by password.
 
-To do that create `.htaccess` file:
+To do that you need to create `.htaccess` file:
 
 ```bash
 $ cat .htaccess 
