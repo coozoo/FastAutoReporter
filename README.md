@@ -314,6 +314,8 @@ reporterdb.sql - contains everything you need to import
 
 ### Procedures
 
+Those procedures are very important part of frontend reporter.
+
 Here list of procedures used in project, purpose and examples how to call them:
 
 <details>
@@ -451,3 +453,12 @@ Here list of procedures used in project, purpose and examples how to call them:
 </details>
 
 ### Events
+
+Events important for DB maintanance and some frontend functionality.
+
+**close_runs_in_progress** - calls `close_running` procedure every minute to show current executiion state.
+
+**remove_old_dev_runs** - maintanance event to clear dev test runs it calls `delete_old_runs` procedure.
+
+**remove_old_logs** - maintanance event to clear old logs it calls `delete_old_logs` procedure.
+
