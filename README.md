@@ -302,7 +302,7 @@ write_buffer=2M
 
 ## DB Initialization
 
-Use phpmyadmin to import tables, procedures and events (all objects important for dunctionality)
+Use phpmyadmin to import tables, procedures and events (all objects important for functionality)
 
 reporterdb.sql - contains everything you need to import
 
