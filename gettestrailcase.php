@@ -29,7 +29,7 @@
     $caseid=$matches[0][0];
     require 'stuff/testrail.php';
 ///////////// Testrail config
-    $testrailhost='https://testrail.anzogroup.com/';
+    $testrailhost='https://url.com/';
     $client = new TestRailAPIClient("$testrailhost");
     $client->set_user('UserAccount');
     $client->set_password('UserPassword');
