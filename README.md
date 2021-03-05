@@ -456,7 +456,7 @@ Here list of procedures used in project, purpose and examples how to call them:
 
 Events important for DB maintanance and some frontend functionality.
 
-**close_runs_in_progress** - calls `close_running` procedure every minute to show current executiion state.
+**close_runs_in_progress** - calls `close_running` procedure every minute to update test run executiion state.
 
 **remove_old_dev_runs** - maintanance event to clear dev test runs it calls `delete_old_runs` procedure.
 
