@@ -304,7 +304,7 @@ write_buffer=2M
 
 Use phpmyadmin to import tables, procedures and events (all objects important for functionality)
 
-reporterdb.sql - contains everything you need to import
+reporterdb.sql - contains everything what you need to import
 
 ## DB Structure
 
