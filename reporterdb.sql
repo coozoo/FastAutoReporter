@@ -487,7 +487,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_runs` (IN `userenv` VARCHAR(255
 	where `reporter`.`run`.`id`=RUNID AND (`reporter`.`run`.`id`=`reporter`.`run_suite`.`run_id`
 				AND `reporter`.`run_suite`.`suite_id`=`reporter`.`suite`.`id` AND `reporter`.`suite_test`.`suite_id`=`reporter`.`suite`.`id`
                 AND `reporter`.`suite_test`.`test_id`=`reporter`.`test`.`id` AND `reporter`.`test`.`result_id`=`reporter`.`result`.`id`)),'<td></td><td></td><td></td><td></td><td></td>') as '<th>FAIL</th><th>ERROR</th><th>SKIP</th><th>PASS</th><th>Total</th>'
-	from `reporter`.`run` FORCE INDEX(PRIMARY,r_run_start_date_desc_idx),`reporter`.`environment`,`reporter`.`team` where ";
+	from `reporter`.`run` FORCE INDEX(PRIMARY),`reporter`.`environment`,`reporter`.`team` where ";
 
   /* don't forget to update count_runs procedure with the same conditions */
 
@@ -956,7 +956,7 @@ DELIMITER ;
 DROP TABLE IF EXISTS `author`;
 CREATE TABLE `author` (
   `id` bigint(20) NOT NULL,
-  `a_author_name` varchar(255) NOT NULL
+  `a_author_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -968,7 +968,7 @@ CREATE TABLE `author` (
 DROP TABLE IF EXISTS `environment`;
 CREATE TABLE `environment` (
   `id` bigint(20) NOT NULL,
-  `e_env_name` varchar(63) NOT NULL
+  `e_env_name` varchar(63) COLLATE utf8mb4_unicode_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -980,7 +980,7 @@ CREATE TABLE `environment` (
 DROP TABLE IF EXISTS `feature`;
 CREATE TABLE `feature` (
   `id` bigint(20) NOT NULL,
-  `f_feature_name` varchar(255) NOT NULL
+  `f_feature_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -992,10 +992,11 @@ CREATE TABLE `feature` (
 DROP TABLE IF EXISTS `log`;
 CREATE TABLE `log` (
   `id` bigint(20) NOT NULL,
-  `l_log` longtext,
-  `l_screenshot_file_name` longblob,
-  `l_log_added_timestamp` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `l_screenshot_preview` blob
+  `l_log` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `l_screenshot_file_name` longblob DEFAULT NULL,
+  `l_log_added_timestamp` datetime NOT NULL DEFAULT current_timestamp(),
+  `l_screenshot_preview` blob DEFAULT NULL,
+  `l_screenshot_type` varchar(127) COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
 
 -- --------------------------------------------------------
@@ -1006,10 +1007,10 @@ CREATE TABLE `log` (
 
 DROP TABLE IF EXISTS `reporter_config`;
 CREATE TABLE `reporter_config` (
-  `rc_video_container_host` varchar(255) NOT NULL,
-  `rc_video_container_localpath` varchar(255) NOT NULL,
+  `rc_video_container_host` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rc_video_container_localpath` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `id` bigint(20) NOT NULL,
-  `rc_local_machine_container_path` varchar(1023) DEFAULT NULL
+  `rc_local_machine_container_path` varchar(1023) COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1021,7 +1022,7 @@ CREATE TABLE `reporter_config` (
 DROP TABLE IF EXISTS `result`;
 CREATE TABLE `result` (
   `id` bigint(20) NOT NULL,
-  `re_result_name` varchar(255) DEFAULT NULL
+  `re_result_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1035,21 +1036,21 @@ CREATE TABLE `run` (
   `id` bigint(20) NOT NULL,
   `environment_id` bigint(20) NOT NULL,
   `team_id` bigint(20) NOT NULL,
-  `r_run_uid` varchar(255) NOT NULL,
-  `r_run_name` varchar(255) NOT NULL,
-  `r_run_start_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `r_run_uid` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `r_run_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `r_run_start_date` datetime NOT NULL DEFAULT current_timestamp(),
   `r_run_finish_date` datetime DEFAULT NULL,
   `r_run_duration` bigint(20) DEFAULT NULL,
-  `r_tests_count` bigint(20) DEFAULT '0',
-  `r_passed_tests_count` bigint(20) DEFAULT '0',
-  `r_failed_tests_count` bigint(20) DEFAULT '0',
-  `r_skipped_tests_count` bigint(20) DEFAULT '0',
-  `r_blocked_tests_count` bigint(20) DEFAULT '0',
-  `r_errored_tests_count` bigint(20) DEFAULT '0',
-  `r_build_version` longtext,
-  `r_is_developement_run` tinyint(4) NOT NULL DEFAULT '0',
-  `r_is_run_finished` tinyint(4) NOT NULL DEFAULT '0',
-  `test_type_id` bigint(20) NOT NULL DEFAULT '2'
+  `r_tests_count` bigint(20) DEFAULT 0,
+  `r_passed_tests_count` bigint(20) DEFAULT 0,
+  `r_failed_tests_count` bigint(20) DEFAULT 0,
+  `r_skipped_tests_count` bigint(20) DEFAULT 0,
+  `r_blocked_tests_count` bigint(20) DEFAULT 0,
+  `r_errored_tests_count` bigint(20) DEFAULT 0,
+  `r_build_version` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `r_is_developement_run` tinyint(4) NOT NULL DEFAULT 0,
+  `r_is_run_finished` tinyint(4) NOT NULL DEFAULT 0,
+  `test_type_id` bigint(20) NOT NULL DEFAULT 2
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1100,17 +1101,17 @@ CREATE TABLE `run_testtype` (
 DROP TABLE IF EXISTS `suite`;
 CREATE TABLE `suite` (
   `id` bigint(20) NOT NULL,
-  `s_suite_uid` varchar(255) NOT NULL,
-  `s_suite_name` varchar(255) NOT NULL,
-  `s_suite_start_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `s_suite_uid` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `s_suite_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `s_suite_start_date` datetime NOT NULL DEFAULT current_timestamp(),
   `s_suite_finish_date` datetime DEFAULT NULL,
   `s_suite_run_duration` bigint(20) DEFAULT NULL,
-  `s_tests_count` bigint(20) DEFAULT '0',
-  `s_passed_tests_count` bigint(20) DEFAULT '0',
-  `s_failed_tests_count` bigint(20) DEFAULT '0',
-  `s_skipped_tests_count` bigint(20) DEFAULT '0',
-  `s_blocked_tests_count` bigint(20) DEFAULT '0',
-  `s_errored_tests_count` bigint(20) DEFAULT '0'
+  `s_tests_count` bigint(20) DEFAULT 0,
+  `s_passed_tests_count` bigint(20) DEFAULT 0,
+  `s_failed_tests_count` bigint(20) DEFAULT 0,
+  `s_skipped_tests_count` bigint(20) DEFAULT 0,
+  `s_blocked_tests_count` bigint(20) DEFAULT 0,
+  `s_errored_tests_count` bigint(20) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -1164,7 +1165,7 @@ DELIMITER ;
 DROP TABLE IF EXISTS `team`;
 CREATE TABLE `team` (
   `id` bigint(20) NOT NULL,
-  `tm_team_name` varchar(255) NOT NULL
+  `tm_team_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1178,16 +1179,16 @@ CREATE TABLE `test` (
   `id` bigint(20) NOT NULL,
   `feature_id` bigint(20) NOT NULL,
   `result_id` bigint(20) NOT NULL,
-  `t_test_uid` varchar(255) NOT NULL,
-  `t_test_name` varchar(255) NOT NULL,
-  `t_testrail_id` varchar(255) DEFAULT NULL,
-  `t_defect` varchar(255) DEFAULT NULL,
+  `t_test_uid` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `t_test_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `t_testrail_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `t_defect` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `t_test_start_date` datetime NOT NULL,
   `t_test_finish_date` datetime NOT NULL,
   `t_test_run_duration` bigint(20) DEFAULT NULL,
-  `t_additional_info` longtext,
+  `t_additional_info` longtext COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `test_author_id` bigint(20) DEFAULT NULL,
-  `t_test_video` varchar(255) DEFAULT NULL
+  `t_test_video` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1199,7 +1200,7 @@ CREATE TABLE `test` (
 DROP TABLE IF EXISTS `testtype`;
 CREATE TABLE `testtype` (
   `id` bigint(20) NOT NULL,
-  `tt_test_type_name` varchar(255) NOT NULL
+  `tt_test_type_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1213,7 +1214,7 @@ CREATE TABLE `test_log` (
   `id` bigint(20) NOT NULL,
   `log_id` bigint(20) NOT NULL,
   `test_id` bigint(20) NOT NULL,
-  `tl_add_timestamp` datetime DEFAULT CURRENT_TIMESTAMP
+  `tl_add_timestamp` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
