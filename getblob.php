@@ -15,6 +15,7 @@
     $parts = parse_url($url);
     $logid=null;
     $blob=null;
+    $blobtype=null;
     $preview="false";
     
     if (isset($parts['query'])) {
@@ -42,28 +43,70 @@ if(isset($query['logid']))
     {
     if($preview=="true")
     {
-	$getblobquery="SELECT l_screenshot_preview FROM reporter.log where id=".$logid.";";
+	$getblobquery="SELECT l_screenshot_preview,l_screenshot_type FROM reporter.log where id=".$logid.";";
     }
     else
     {
-	$getblobquery="SELECT l_screenshot_file_name FROM reporter.log where id=".$logid.";";
+	$getblobquery="SELECT l_screenshot_file_name,l_screenshot_type FROM reporter.log where id=".$logid.";";
     }
     //echo($getblobquery);
     if($result = $mysqli->query($getblobquery))
     {
+    //var_dump($result);
         while($rows=mysqli_fetch_array($result)){
-        if($rows[0])
-        {
-	$blob=$rows[0];
-        }
-        }
+	    //var_dump($rows);
+	    if($rows[0])
+	    {
+		$blob=$rows[0];
+    	    }
+        	$blobtype=$rows[1];
+	}
         $result->close();
         //$mysqli->next_result();
     }
     }
-header("Content-type: image/png");    
+//var_dump($blobtype);
+//var_dump($blob);
+//header("Content-type: image/png");
+if(is_null($blobtype))
+{
+    header("Content-type: image/png");
+    echo $blob;
+}
+else
+{
+    if($preview=="true")
+    {
+	if(is_null($blob))
+	{
+	    if(strpos("$blobtype",'text/html') !== false)
+	    {
+		header("Content-type: image/svg+xml");
+		echo(file_get_contents("img/icons/mime/Crystal-Clear-mime-text-html.svg"));
+	    }
+	    elseif(strpos("$blobtype",'text') !== false)
+	    {
+		header("Content-type: image/png");
+		echo(file_get_contents("img/icons/mime/Gnome-mime-text.png"));
+	    }
+	}
+	else
+	{
+	    header("Content-type: $blobtype");
+	    echo $blob;
+	}
+    }
+    else
+    {
+	header("Content-type: $blobtype");
+	echo $blob;
+    }
+}
+
+
+
 //echo '<img src="'.$blob.'" alt="HTML5 Icon" style="width:128px;height:128px">';;
-echo $blob;
+
 
 CloseCon($mysqli);
 
