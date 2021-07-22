@@ -1182,6 +1182,7 @@ CREATE TABLE `test` (
   `t_test_uid` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `t_test_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `t_testrail_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `t_jira_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `t_defect` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `t_test_start_date` datetime NOT NULL,
   `t_test_finish_date` datetime NOT NULL,
