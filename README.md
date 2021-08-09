@@ -99,7 +99,7 @@ $ htpasswd /var/www/html/myreporter/dbrestricted/.htpasswd newuser
 
 **testhistory.php** - show history for some test case;
 
-**testresultschart.php**  - this will beld stats for filtered test runs (accept post parameters only);
+**testresultschart.php**  - this will build stats for filtered test runs (accept post parameters only);
 
 **testvideo.php** - video loader.
 
