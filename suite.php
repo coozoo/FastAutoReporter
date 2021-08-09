@@ -162,7 +162,7 @@ $suitetabledata=array();
                     	    
                     	    {
                         	//$runtableheader.="<th id=\"RunTableHeader_$val->name\" onclick=\"return showhidetests(this);\"  style=\"cursor:pointer;\">".$val->name."</th>";
-                        	$runtableresultheader.="<th id=\"RunTableHeader_$val->name\" onclick=\"return showhidetests(this);\"  style=\"cursor:pointer;\">".$val->name."</th>";
+                        	$runtableresultheader.="<th id=\"RunTableHeader_$val->name\" onclick=\"return showhidetests(this);\"  style=\"cursor:pointer;\" title=\"Show only tests with result $val->name\">".$val->name."</th>";
                     	    }
                     	    else if($val->name=="TOTAL"
                     	    || $val->name=="FAIL%" || $val->name=="SKIP%" || $val->name=="PASS%" || $val->name=="ERROR%")
@@ -593,13 +593,20 @@ else
     echo "<div style=\"margin-right:auto;display: inline-block;padding-left: 10px;\"><a href=\"suite.php?runid=$runid\"><img alt=\"Feature View\" src=\"img/icons/Gnome-applications-office.svg\" style=\"width:30px;\" title=\"Switch to Feature View\"></a></div>";
 }
 
-echo "<div style=\"margin-left:auto;float:right;text-align:right;padding-right: 10px;display: inline-block;\">
+
+echo "&nbsp;<div style=\"margin-left:auto;float:right;text-align:right;padding-right: 10px;display: inline-block;\">
 <input id=\"showhidesuites_FAIL\" type=\"image\" src=\"img/icons/Gnome-colors-emblem-desktop4.svg\" style=\"width:30px;\" onclick=\"return showhidesuites(this);\" title=\"Hide Fail Suites\">
 <input id=\"showhidesuites_ERROR\" type=\"image\" src=\"img/icons/Gnome-colors-emblem-desktop2.svg\" style=\"width:30px;\" onclick=\"return showhidesuites(this);\" title=\"Hide Error Suites\">
 <input id=\"showhidesuites_SKIP\" type=\"image\" src=\"img/icons/Gnome-colors-emblem-desktop5.svg\" style=\"width:30px;\" onclick=\"return showhidesuites(this);\" title=\"Hide Skip Suites\">
 <input id=\"showhidesuites_PASS\" type=\"image\" src=\"img/icons/Gnome-colors-emblem-desktop3.svg\" style=\"width:30px;\" onclick=\"return showhidesuites(this);\" title=\"Hide Pass Suites\">
 &nbsp;&nbsp;<input id=\"showhideallsuites\" type=\"image\" src=\"img/icons/Gnome-view-sort-descending.svg\" style=\"width:30px;\" onclick=\"return showHideAllSuites();\" title=\"Expand Suites\">
-</div>";
+</div>&nbsp;";
+
+echo("<div style=\"border-right: 5px solid lavender;margin-left:auto;float:right;text-align:right;padding-right: 10px;display: inline-block; background-color: #cecccc;padding:5px;-moz-border-radius:10px 10px 0 0;   \">
+<input type=\"checkbox\" style=\"vertical-align: middle;\" id=\"hide_info_checkbox\" title=\"Hide [INFO] logs\"  onclick=\"return onshowhidecheckbox_checked(this);\" checked><label  title=\"Hide [INFO] logs\" style=\"vertical-align: middle;\" for=\"hide_info_checkbox\">Hide [INFO]</label>
+<input type=\"checkbox\" style=\"vertical-align: middle;\" id=\"hide_other_checkbox\" title=\"Hide Other except Error/Fail logs\"  onclick=\"return onshowhidecheckbox_checked(this);\"><label  title=\"Hide Other except Error/Fail logs\" style=\"vertical-align: middle;\" for=\"hide_other_checkbox\">Hide Other</label>
+</div>&nbsp;&nbsp;");
+
 echo $totalresulttables;
 
 //echo("<br><br>");
@@ -959,12 +966,12 @@ function getdetails(testid,status)
 {
     var targetcol=\"testscolumn_\"+testid;
     var frametable='frametable_'+testid;
-    document.getElementById(targetcol).innerHTML='<iframe id=\"'+frametable+'\"  src=\"\" onload=\"this.style.height=this.contentWindow.document.body.scrollHeight+40 +\'px\';\"  style=\"width:100%\"></iframe>';
+    document.getElementById(targetcol).innerHTML='<iframe id=\"'+frametable+'\"  src=\"\" onload=\"showhidelogs('+testid+');this.style.height=this.contentWindow.document.body.scrollHeight+40 +\'px\';\"  style=\"width:100%\"></iframe>';
     //this.contentWindow.document.body.getElementById('spinner').style.display='none';
     var iframe = document.getElementById(frametable);
     iframe.src = 'testdetails.php?testid='+ testid+'&status='+status+'&_=' + new Date().getTime();
 //onload=\"this.style.height=this.contentWindow.document.body.scrollHeight +'px';\" style=\"width:100%\"
-
+    
 }
 
 function loadDoc(testid,status) {
@@ -1145,6 +1152,65 @@ function onkeypress_body(event)
 	}
     }
 }
+
+function onshowhidecheckbox_checked(event)
+{
+	console.log(\"Checked\");
+	console.log(\"event\");
+	//document.scrollLeft;
+	//var elements = document.querySelectorAll('iframe[id^=\"framecase_\"]'),i;
+	var elements = document.querySelectorAll('iframe'),i;
+	for (i = 0; i < elements.length; ++i) {
+    	    el=elements[i].id.split(/[_]+/).pop();
+	    if(el!='')
+	    {
+		showhidelogs(el);
+	    }
+	}
+}
+
+
+
+
+function showhidelogs(testid)
+{
+    var infochecked = document.getElementById(\"hide_info_checkbox\").checked;
+    var otherchecked = document.getElementById(\"hide_other_checkbox\").checked;
+    var infofilter='';
+    if(infochecked)
+    {
+	infofilter = \"[INFO]\";
+    }
+
+    //var frametable='frametable_71880';
+    var frametable='frametable_'+testid;
+    console.log(\"showhidelogs \" + frametable);
+    var iframe = document.getElementById(frametable);
+    var innerDoc = iframe.contentDocument || iframe.contentWindow.document;
+    var table = innerDoc.getElementById(\"logtable\");
+    if(table)
+    {
+    var tr = table.getElementsByTagName(\"tr\");
+    //console.log(tr);
+    for (var i = 0; i < tr.length; i++) 
+    {
+//	console.log(tr[i].textContent);
+        if(infofilter!='' && tr[i].textContent.indexOf(infofilter) > -1)
+	{
+            tr[i].style.display = \"none\";
+        }
+	else if(otherchecked && tr[i].textContent.indexOf('[ERROR]') == -1 && tr[i].textContent.indexOf('[FAIL]') == -1 && tr[i].textContent.indexOf('[INFO]') == -1)
+	{
+            tr[i].style.display = \"none\";
+	}
+	else {
+            tr[i].style.display = \"\";
+        }
+    }
+	iframe.style.height=iframe.contentWindow.document.body.scrollHeight+40 +'px';
+    }
+}
+
 
 </script>");
 
