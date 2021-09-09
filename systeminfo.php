@@ -110,6 +110,7 @@
         $tableeventinfoquery="select 
 				EVENT_NAME as EventName,
 				EVENT_SCHEMA as `Schema`,
+				INTERVAL_VALUE as `Value`,
 				INTERVAL_FIELD as `Interval`,
 				LAST_EXECUTED as LastExecuted,
 				EVENT_DEFINITION as EventDefinition,
