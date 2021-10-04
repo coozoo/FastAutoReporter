@@ -238,7 +238,7 @@ set statusesOri=statuses;
 set whoOri=who;
 
 
-set querySelectPart="select `run`.`id` as RUNID,`test`.`id` as TESTID,`author`.`a_author_name` AS Author,t_test_name as TestName,t_testrail_id as TestRailID,r_run_start_date as RunStartDate,r_run_finish_date as RunFinishDate,TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), \"%H:%i:%s\") as TestDuration,re_result_name as TestResult,t_defect as Defect 
+set querySelectPart="select `run`.`id` as RUNID,`test`.`id` as TESTID,`author`.`a_author_name` AS Author,s_suite_name as SuiteName,t_test_name as TestName,t_testrail_id as TestRailID,r_run_start_date as RunStartDate,r_run_finish_date as RunFinishDate,TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), \"%H:%i:%s\") as TestDuration,re_result_name as TestResult,t_defect as Defect 
 from `reporter`.`run`,`reporter`.`suite`,`reporter`.`test`,`reporter`.`run_suite`,`reporter`.`suite_test`,`reporter`.`result`,`reporter`.`author`
 where ";
 
@@ -321,7 +321,7 @@ End if;
          `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
     AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
          `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`) ",
-                      "order by `author`.`a_author_name`,t_test_name,`test`.`id` DESC");
+                      "order by `author`.`a_author_name`,s_suite_name,t_test_name,`test`.`id` DESC");
  
  /* select `author`.`a_author_name` AS Author,
 		`suite`.`id`                                                     as TestTable_SuiteID,
