@@ -55,10 +55,10 @@ run_loop : LOOP
     END IF;
     set totalcount=(select count(r_run_duration) from `reporter`.`run` where  r_run_duration is not null and r_run_duration>20 and r_run_name=RunName);
     if totalcount>=10 then
-		set upperlimit=(select(ROUND(upperprcnt*100/totalcount)));
 		set lowerlimit=(select(ROUND(lowerprcnt*100/totalcount)));
+		set upperlimit=totalcount-lowerlimit-(select(ROUND(upperprcnt*100/totalcount)));
 		-- SET maxduration=(select max(r_run_duration) from `reporter`.`run` where r_run_name=RunName);
-		SET maxduration=(select AVG(average) from (select r_run_duration as average from `reporter`.`run` where r_run_duration is not null and r_run_duration>20 and r_run_name=RunName limit 12,70) as limited);
+		SET maxduration=(select AVG(average) from (select r_run_duration as average from `reporter`.`run` where r_run_duration is not null and r_run_duration>20 and r_run_name=RunName limit lowerlimit,upperlimit) as limited);
 	else
 		SET maxduration=(select avg(r_run_duration) from `reporter`.`run` where r_run_name=RunName);
     end if;
@@ -73,7 +73,7 @@ run_loop : LOOP
 	 	set curaction='runnning';
     end if;
     
-    select CONCAT(RunId,', ',maxduration,', ',currentduration,', ',StartDate,', ', curaction,', ',UTC_TIMESTAMP());
+    select CONCAT(RunId,', ',maxduration,', ',currentduration,', ',StartDate,', ', curaction,', ',UTC_TIMESTAMP(),',',upperlimit,',',lowerlimit);
 END LOOP;
 
 CLOSE cursorruns;
