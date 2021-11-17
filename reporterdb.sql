@@ -196,7 +196,8 @@ END IF;
 delete `reporter`.`log` from `reporter`.`log` where `reporter`.`log`.`l_log_added_timestamp`<DATE_SUB(current_timestamp,INTERVAL number_of_days DAY);
 
 -- delete old ids from mapping table for logs that aren't existing anymore
-delete FROM reporter.test_log where log_id not in (SELECT id FROM log);
+-- delete FROM reporter.test_log where log_id not in (SELECT id FROM log);
+   delete FROM test_log where log_id<(SELECT min(id) FROM reporter.log);
 SET FOREIGN_KEY_CHECKS=1;
 END$$
 
