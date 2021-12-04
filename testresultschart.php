@@ -15,6 +15,7 @@
     $postdata = $_POST["data"];
 //    var_dump($postdata);
     $runs = json_decode($postdata, true);
+    $filtername =$runs['name'];
 //    var_dump($runs);
     $structureddata=array();
     $valuesdata=array();
@@ -99,7 +100,7 @@ require_once 'SVGGraph/autoloader.php';
 
 $settings = array(
   'auto_fit' => true,
-  'graph_title' => 'Results by Run',
+  'graph_title' => 'Results by Run'." $filtername",
   'back_colour' => 'lavender',
   'stroke_colour' => '#000',
   'back_stroke_width' => 0,
@@ -197,7 +198,7 @@ $graph->links($links);
 
 $settingsline = array(
   'auto_fit' => true,
-  'graph_title' => 'Execution Time',
+  'graph_title' => 'Execution Time'." $filtername",
   'back_colour'       => 'lavender',
   'stroke_colour'     => '#000',
   'back_stroke_width' => 0,

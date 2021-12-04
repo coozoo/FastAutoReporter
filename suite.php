@@ -149,9 +149,11 @@ $suitetabledata=array();
                 elseif($currentfirstcolname==$suitetablefirstcolname)
                 {
             	    $suitetablebody.="<tr>";
+
                 }
 		elseif($currentfirstcolname==$testtablefirstcolname)
                 {
+
             	    $testtablebody.="<tr>";
                 }
                     }
@@ -299,6 +301,7 @@ $suitetabledata=array();
             $result->free();
         }
     } while ($mysqli->more_results() && $mysqli->next_result());
+
 
 $runtable.=$runtableheader.$runtablebody;
 $runtable.="</tr></tbody></table>";
@@ -565,6 +568,10 @@ echo("<!DOCTYPE html><html lang=\"en\"><head><title>Fast Automation Report Viewe
         	<script src=\"sorttable.js\" type=\"text/javascript\"></script>
         	    </head><body>");
 include($_SERVER['DOCUMENT_ROOT']."/$myreporter/header.php"); 
+if($RUNNAME==null)
+{
+    exit( "Sorry, such run doesn't exist in DB");
+}
 
 echo "<table style=\"width:100%;\"><tbody><tr style=\"vertical-align:top\">";
 echo "<td>&nbsp;&nbsp;<iframe allowtransparency=\"true\" src=\"statuspiechart.php?PASS=$PASS&FAIL=$FAIL&SKIP=$SKIP&ERROR=$ERROR\" type=\"image/svg+xml\" scrolling=\"no\" style=\"width:290px;height:160px;border-width:0;\"></iframe></td>";
