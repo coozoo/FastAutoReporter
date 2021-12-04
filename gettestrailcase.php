@@ -28,32 +28,12 @@
     preg_match_all('!\d+!', $caseid, $matches);
     $caseid=$matches[0][0];
     require 'stuff/testrail.php';
-///////////// Testrail config
-    $testrailhost='https://url.com/';
+
     $client = new TestRailAPIClient("$testrailhost");
-    $client->set_user('UserAccount');
-    $client->set_password('UserPassword');
-////////////
+    $client->set_user("$testrailuser");
+    $client->set_password("$testrailpass");
     $case = $client->send_get("get_case/$caseid");
     $suite = $client->send_get("get_suite/".$case['suite_id']);
-    //var_dump($suite);
-    //$auth = base64_decode("rmg_virginbet_qa@onseo.biz:ktiNCUKYIcObPRFj/IcZ-dkC7.CDD85IHD51Abn/S");
-    //var_dump($auth);
-    //$context = stream_context_create([
-    //    "http" => [
-    //        'method'=>"GET",
-    //            'header' => ["Authorization: Basic $auth","Content-Type: application/json"],
-    //            'timeout' => 5
-    //                ]
-    //                ]);
-    //var_dump(stream_context_get_params($context));
-    //$case = file_get_contents("https://testrail.gamesys.co.uk/index.php?/api/v2/get_case/$caseid",false, $context);
-    
-    //https://testrail.gamesys.co.uk/index.php?/cases/view/3324232
-    
-    //var_dump($case);
-    //print_r($case);
-    //var_dump($case['custom_steps_to_reproduce']);
 
     $stepstable="<table id=\"stepstable\" class=\"blueTable\">";
     $stepstableheader="<thead><tr><th>Steps</th><th>Expected Result</th></tr></thead>";

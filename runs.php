@@ -275,6 +275,9 @@
 				$tablebody.="<td class=\"columnA\" value=\"".$rows[$val->name]."\" title=\"Click to copy into buffer: \n".$rows[$val->name]."\" onclick=\"return copyversion(this);\">".$rows[$val->name]."</td>";
 			    }
 			    break;
+			case "Start at":
+			    $tablebody.="<td id=\"".$trcnt."_".$RUNID."\" value=\"".$rows[$val->name]."\">".$rows[$val->name]."</td>";
+			    break;
 			default:
 			    $tablebody.="<td value=\"".$rows[$val->name]."\">".$rows[$val->name]."</td>";
 			}
