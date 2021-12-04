@@ -3,19 +3,14 @@
 ## Installation
 
 ### Download sources
+
 ```bash
 $ git clone https://github.com/coozoo/FastAutoReporter
+$ git submodule update --init --recursive
 ```
 Copy it to your webserver directory
 
 ### Dependencies
-
-You need to install SVGGraph
-
-```bash
-$ cd FastAutoReporter
-$ git clone https://github.com/goat1000/SVGGraph
-```
 
 Additionally you can update testrail API if required from here 
 
@@ -39,13 +34,12 @@ Open `mysqli_connection.php` and assign your values instead of this:
 ```
 #### Testrail configuration
 
-Open `gettestrailcase.php` find and assign your credentials inside:
+Open `initvar.php` find and assign your credentials inside:
 
 ```php
-    $testrailhost='https://url.com/';
-    $client = new TestRailAPIClient("$testrailhost");
-    $client->set_user('UserAccount');
-    $client->set_password('UserPassword');
+$testrailhost='https://testrail.com/';
+$testrailuser='TESTRAILUSER';
+$testrailpass='TESTRAILPASS';
 ```
 #### Restricted Access
 
@@ -53,7 +47,7 @@ For some files it's better to restrict access by password.
 
 For example `dbrestricted` folder contains `killprocess.php` that allows to kill DB tasks sure it's better to protect it by password.
 
-To do that you need to create `.htaccess` file:
+To do that you need to create `.htaccess` file (example):
 
 ```bash
 $ cat .htaccess 
@@ -67,7 +61,34 @@ You can add user to `.htpasswd` by:
 $ htpasswd /var/www/html/myreporter/dbrestricted/.htpasswd newuser
 ```
 
-### Pages short description
+### API for adding data into DB
+
+Current API implemented in a bit strange way for compatibility with old java service.
+
+Each endpoint will return short info how to call it just call this page from browser.
+
+./api/reporter/run/add.php - add new run;
+
+./api/reporter/run/finish.php - mark run as finished
+
+./api/reporter/suite/add.php - add suite;
+
+./api/reporter/test/add.php - add test and logs;
+
+For compatibilitt with old java service it can be added .htaccess file inside ./api/reporter folder to hide php extensions:
+
+```bash
+$ cat ./api/reporter/.htaccess 
+RewriteRule ^([^.?]+)$ %{REQUEST_URI}.php [L]
+
+# Return 404 for php
+RewriteCond %{THE_REQUEST} "^[^ ]* .*?\.php[? ].*$"
+RewriteRule .* - [L,R=404]
+
+```
+
+
+### Enpoints short description
 
 **blame.php** - view that represents most fails and who is responsible for tests;
 
