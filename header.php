@@ -4,11 +4,11 @@
     $logoimage="/$myreporter/img/normal/output.png";
     $runlogos=array(
 	array(
-	    "logoimage" => "/$myreporter/img/anim/bartskate.gif",
+	    "logoimage" => "/$myreporter/img/anim/progress1.gif",
 	    "titleimage" => "Caramba"
 	    ),
 	array(
-	    "logoimage" => "/$myreporter/img/anim/bartmoonwalk.gif",
+	    "logoimage" => "/$myreporter/img/anim/progress2.gif",
 	    "titleimage" => "Caramba"
 	    )
     );
@@ -24,27 +24,27 @@
 	$heightimage="80px";
 	break;
     case "FAIL":
-	$logoimage="/$myreporter/img/prunk/bart-simpson-eat-my-shorts-fixed-colors-by-arthony70100-bart-png-494_726.png";
+	$logoimage="/$myreporter/img/normal/fail.png";
 	$titleimage="Eat my shorts";
 	$heightimage="80px";
 	break;
     case "ERROR":
-	$logoimage="/$myreporter/img/prunk/slingshotout.png";
+	$logoimage="/$myreporter/img/normal/error.png";
 	$titleimage="How dare you";
 	$heightimage="80px";
 	break;
     case "SKIP":
-	$logoimage="/$myreporter/img/normal/simpsonelection.png";
+	$logoimage="/$myreporter/img/normal/skip.png";
 	$titleimage="Hm.....";
 	$heightimage="80px";
 	break;
     case "PASS":
-	$logoimage="/$myreporter/img/normal/bartskateout.png";
+	$logoimage="/$myreporter/img/normal/pass.png";
 	$titleimage="Really?";
 	$heightimage="80px";
 	break;
     case "blame":
-	$logoimage="/$myreporter/img/blame/bart_blame_small.png";
+	$logoimage="/$myreporter/img/normal/blame.png";
 	$titleimage="Blame it on you!";
 	$heightimage="80px";
 	break;

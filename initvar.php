@@ -1,5 +1,5 @@
 <?php
-    $iconfile="img/normal/bartheadtiny.png";
+    $iconfile="img/normal/icontiny.png";
 
 ///////////// testrail settings /////////////
 $testrailhost='https://testrail.com/';
