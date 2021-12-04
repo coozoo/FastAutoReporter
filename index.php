@@ -105,7 +105,7 @@
     
     $cssTableStyleFile="csstablestyle.css";
     $cssTableStyle=file_get_contents($cssTableStyleFile);
-    echo("<!DOCTYPE html><html>
+    echo("<!DOCTYPE html><html lang=\"en\">
     <head><title>Fast Automation Report Viewer</title>
         <link rel='shortcut icon' type='image/png' href='$iconfile' /> <style id=\"csstablestyle\">".$cssTableStyle."</style>
         </head>
@@ -388,7 +388,6 @@ $versionfilter.="</datalist><input type=\"image\" id=\"submitversion\" src=\"img
 
 
 echo("<div  style=\"position: relative;z-index: 2;top:-29px\"  id=\"table\">
-<!--$testypeselectionbutton-->
 <!--$testtypesselectionradio-->
 $testtypesselectionradio
 <table style=\"width:100%;border-spacing:10px;background-color:#c2d9ed;\">
@@ -797,7 +796,7 @@ function headertest()
     console.log('ids '+ failid +' ' + errorid + ' ' + skipid + ' ' + passid + ' ' + totalid);
 */
     var json=JSON.parse('{\"data\":[]}');
-
+    json['name']=runnameinput.value;
     var rows=datatable.getElementsByTagName(\"tbody\")[0].getElementsByTagName(\"tr\");
     //console.log(rows);
     for(i=0;i<rows.length;i++)
@@ -806,7 +805,15 @@ function headertest()
 	var json_row_obj=JSON.parse('{}');
 	for(j=0;j<columns.length;j++)
 	{
-	    json_row_obj[headers[j].innerHTML]=columns[j].innerHTML;
+//	    console.log(columns[j].innerHTML+columns[j].id);
+	    if(columns[j].id)
+	    {
+		json_row_obj[headers[j].innerHTML]=columns[j].innerHTML+'_'+columns[j].id;
+	    }
+	    else
+	    {
+		json_row_obj[headers[j].innerHTML]=columns[j].innerHTML;
+	    }
 	}
 	json['data'].push(json_row_obj);
 	

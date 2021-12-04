@@ -1,6 +1,6 @@
 <?php
     $heightimage="75px";
-    $titleimage="90px";
+    $titleimage="";
     $logoimage="/$myreporter/img/normal/output.png";
     $runlogos=array(
 	array(
