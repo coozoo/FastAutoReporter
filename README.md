@@ -94,7 +94,7 @@ Each endpoint will return short info how to call it just call this page from bro
 
 ./api/reporter/test/add.php - add test and logs;
 
-For compatibilitt with old java service it can be added .htaccess file inside ./api/reporter folder to hide php extensions:
+For compatibility with old java service it can be added .htaccess file inside ./api/reporter folder to hide php extensions:
 
 ```bash
 $ cat ./api/reporter/.htaccess 
