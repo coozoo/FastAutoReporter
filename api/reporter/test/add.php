@@ -19,6 +19,7 @@
     }
 */
 header('Content-Type: application/json');
+
 $json = file_get_contents('php://input');
 
 function show_help() {
@@ -33,7 +34,7 @@ function show_help() {
         "2021-11-27 19:02:20 - [INFO]:[Th167] - LoadingPage remained open for 2 sec",
         "[FONT-WEIGHT:bold;COLOR:Green]2021-11-27 19:03:05 - [PASS]:[Th167] - Login Pass",
         "[FONT-WEIGHT:bold;COLOR:Red]2021-11-27 19:03:05 - [FAIL]:[Th167] - [590ab7cc-3190-4895-90f7-3ed0aa9a4009]Login Failed",
-        "2021-11-27 19:03:10 - [INFO]:[Th167] - JVM MEMORY: Free [1643 Mb]. Used [3246 Mb]",
+        "2021-11-27 19:03:10 - [INFO]:[Th167] - JVM MEMORY: Free [1643 Mb]. Used [3246 Mb]"
     ],
     "screenshotFiles": [
         {
@@ -106,10 +107,10 @@ t_jira_id
 				$json_obj['suiteUid']."',".
 				((isset($json_obj['testAuthor']))?"'".mysqli_real_escape_string($mysqli,$json_obj['testAuthor'])."'":'NULL').",".
 				((isset($json_obj['testDuration']))?$json_obj['testDuration']:'NULL').",'".
-				$json_obj['testFinishDate']."','".
+				preg_replace('/\\+\d+/','',$json_obj['testFinishDate'])."','".
 				mysqli_real_escape_string($mysqli,$json_obj['testName'])."','".
 				$json_obj['testResult']."','".
-				$json_obj['testStartDate']."','".
+				preg_replace('/\\+\d+/','',$json_obj['testStartDate'])."','".
 				$json_obj['testUid']."',".
 				((isset($json_obj['testVideoFileName']))?"'".mysqli_real_escape_string($mysqli,$json_obj['testVideoFileName'])."'":'NULL').",".
 				((isset($json_obj['testrailId']))?"'".mysqli_real_escape_string($mysqli,$json_obj['testrailId'])."'":'NULL').");";

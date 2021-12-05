@@ -30,7 +30,7 @@ DELIMITER $$
 -- Procedures
 --
 DROP PROCEDURE IF EXISTS `add_run`$$
-CREATE DEFINER=`admin`@`%` PROCEDURE `add_run` (IN `buildVersion` LONGTEXT, IN `environment` VARCHAR(255), IN `runName` VARCHAR(255), IN `runUid` VARCHAR(255), IN `testTeam` VARCHAR(255), IN `testType` VARCHAR(255), IN `isDevelopementRun` BOOL)  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `add_run` (IN `buildVersion` LONGTEXT, IN `environment` VARCHAR(255), IN `runName` VARCHAR(255), IN `runUid` VARCHAR(255), IN `testTeam` VARCHAR(255), IN `testType` VARCHAR(255), IN `isDevelopementRun` BOOL)  BEGIN
 	DECLARE environment_id BIGINT;
     DECLARE testTeam_id BIGINT;
     DECLARE testType_id BIGINT;
@@ -88,7 +88,7 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `add_run` (IN `buildVersion` LONGTEXT, IN `
 END$$
 
 DROP PROCEDURE IF EXISTS `add_suite`$$
-CREATE DEFINER=`admin`@`%` PROCEDURE `add_suite` (IN `runUid` VARCHAR(255), IN `suiteName` VARCHAR(255), IN `suiteUid` VARCHAR(255))  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `add_suite` (IN `runUid` VARCHAR(255), IN `suiteName` VARCHAR(255), IN `suiteUid` VARCHAR(255))  BEGIN
 	DECLARE suite_id BIGINT;
     DECLARE run_id BIGINT;
 	DECLARE errno INT;
@@ -118,13 +118,15 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `add_suite` (IN `runUid` VARCHAR(255), IN `
 END$$
 
 DROP PROCEDURE IF EXISTS `add_test`$$
-CREATE DEFINER=`admin`@`%` PROCEDURE `add_test` (IN `additionalInfo` LONGTEXT, IN `defect` VARCHAR(255), IN `feature` VARCHAR(255), IN `jiraId` VARCHAR(255), IN `suiteUid` VARCHAR(255), IN `testAuthor` VARCHAR(255), IN `testDuration` BIGINT, IN `testFinishDate` VARCHAR(255), IN `testName` VARCHAR(255), IN `testResult` VARCHAR(255), IN `testStartDate` VARCHAR(255), IN `testUid` VARCHAR(255), IN `testVideoFileName` VARCHAR(255), IN `testrailId` VARCHAR(255))  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `add_test` (IN `additionalInfo` LONGTEXT, IN `defect` VARCHAR(255), IN `feature` VARCHAR(255), IN `jiraId` VARCHAR(255), IN `suiteUid` VARCHAR(255), IN `testAuthor` VARCHAR(255), IN `testDuration` BIGINT, IN `testFinishDate` VARCHAR(255), IN `testName` VARCHAR(255), IN `testResult` VARCHAR(255), IN `testStartDate` VARCHAR(255), IN `testUid` VARCHAR(255), IN `testVideoFileName` VARCHAR(255), IN `testrailId` VARCHAR(255))  BEGIN
 	DECLARE feature_id BIGINT;
 	DECLARE testResult_id BIGINT;
 	DECLARE testAuthor_id BIGINT;
 	DECLARE test_id BIGINT;
-    DECLARE run_id BIGINT;
-    DECLARE suite_id BIGINT;
+	DECLARE run_id BIGINT;
+	DECLARE suite_id BIGINT;
+	DECLARE testFinishDate_date DATETIME;
+	DECLARE testStartDate_date DATETIME;
 	DECLARE errno INT;
 	DECLARE EXIT HANDLER FOR SQLEXCEPTION
 	BEGIN
@@ -135,7 +137,9 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `add_test` (IN `additionalInfo` LONGTEXT, I
 
 	SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;
 	START TRANSACTION;
-    
+	
+		SET testFinishDate_date=STR_TO_DATE(testFinishDate,'%Y-%m-%dT%T.%f');
+		SET testStartDate_date=STR_TO_DATE(testStartDate,'%Y-%m-%dT%T.%f');  
 
 		-- put creations into separate procedures if you need it somwhere else
 
@@ -169,7 +173,7 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `add_test` (IN `additionalInfo` LONGTEXT, I
 		END IF;
 
 		insert into test (t_additional_info, t_defect, feature_id, t_jira_id, result_id, test_author_id, t_test_run_duration, t_test_finish_date, t_test_name, t_test_start_date, t_test_uid, t_test_video, t_testrail_id)
-		values (additionalInfo, defect, feature_id, jiraId, testResult_id, testAuthor_id, testDuration, testFinishDate, testName, testStartDate, testUid, testVideoFileName, testrailId);
+		values (additionalInfo, defect, feature_id, jiraId, testResult_id, testAuthor_id, testDuration, testFinishDate_date, testName, testStartDate_date, testUid, testVideoFileName, testrailId);
         SET test_id=(SELECT LAST_INSERT_ID());
         
         select reporter.run.id as runid,reporter.suite.id as suiteid 
@@ -178,9 +182,9 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `add_test` (IN `additionalInfo` LONGTEXT, I
         
         insert into suite_test (suite_id, test_id) values (suite_id, test_id);
         
-        UPDATE reporter.suite SET reporter.suite.s_suite_finish_date = testFinishDate WHERE reporter.suite.id = suite_id;
+        UPDATE reporter.suite SET reporter.suite.s_suite_finish_date = testFinishDate_date WHERE reporter.suite.id = suite_id;
         
-        UPDATE reporter.run SET reporter.run.r_run_finish_date = testFinishDate,reporter.run.r_is_run_finished=0  WHERE reporter.run.id = run_id;
+        UPDATE reporter.run SET reporter.run.r_run_finish_date = testFinishDate_date,reporter.run.r_is_run_finished=0  WHERE reporter.run.id = run_id;
         
         select run_id,suite_id,test_id;
 
