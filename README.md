@@ -1,5 +1,16 @@
 # Fast Automation Reporter
 
+Test reporting system. Fast and it's not ugly.
+
+Why it was created? Because everything that is available usually based on "latest technologies", pages of such reporters usually overloaded with javascript,they loading reports and manipulating with them on the fly in memory, as result such systems usually pretty nifty and pretty slow even when working with small reports and absolutelly unusable with report more than few dozens MB.
+
+This reporter based on php and mysql. The main strategy do not load data when you don't need it.
+
+Using it you can build charts based on stat and view this stat, you can view report logs and it is loaded only when you really want to view it and still there is possibility to load report as file.
+
+There is some integration with testrail you can preview and navigate to suite/testcase.
+
+
 ## Installation
 
 ### Download sources
