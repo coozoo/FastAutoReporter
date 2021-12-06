@@ -1,6 +1,6 @@
 # Fast Automation Reporter
 
-Test reporting system. Fast and it's not ugly.
+Test reporting system. Fast and it's not ugly maybe just a bit clumsy.
 
 Why it was created? Because everything that is available usually based on "latest technologies", pages of such reporters usually overloaded with javascript,they loading reports and manipulating with them on the fly in memory, as result such systems usually pretty nifty and pretty slow even when working with small reports and absolutelly unusable with report more than few dozens MB.
 
