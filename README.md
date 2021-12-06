@@ -25,6 +25,7 @@ Run example:
 
 ```bash
 $ git clone https://github.com/coozoo/FastAutoReporter
+$ cd FastAutoReporter
 $ git submodule update --init --recursive
 ```
 Copy it to your webserver directory
