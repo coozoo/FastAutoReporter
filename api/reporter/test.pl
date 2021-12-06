@@ -25,7 +25,7 @@ return $rid;
 
 $runrid  = randomUUID();
 $suiterid  = randomUUID();
-$testrid  = randomUUID();
+$suiterid2  = randomUUID();
 #check certslogs
 #use Net::SSLeay;
 #$Net::SSLeay::trace = 3;
@@ -37,7 +37,7 @@ binmode STDOUT, ":encoding(UTF-8)";
 
 
 my $resultStr="";
-my $runname="Run  ".gmtime();
+my $runname="Run  Android Sanity";
 #=pod
 my $runpostdata='{
     "buildVersion": "1.5.5",
@@ -62,15 +62,27 @@ my $suitepostdata='{
 }
 ';
 
+my $suitepostdata2='{
+    "runUid": "'.$runrid.'",
+    "suiteName": "MainPage",
+    "suiteUid": "'.$suiterid2.'"
+}
+';
+
 $suiteURL="http://localhost/FastAutoReporter/api/reporter/suite/add.php";
 $suiteURL =~ tr/'/\"/;
 
 my $t = time;
 #my $date = strftime "%Y-%m-%dT%H:%M:%S", gmtime $t;
-my $date = strftime "%Y-%m-%dT%H:%M:%S", localtime $t;
-$date .= sprintf ".%03d", ($t-int($t))*1000; # without rounding
+my $startdate = strftime "%Y-%m-%dT%H:%M:%S", localtime $t+100;
+$startdate .= sprintf ".%03d", ($t-int($t))*1000; # without rounding
 
-print $date, "\n";
+
+print $startdate, "\n";
+
+my $finishdate = strftime "%Y-%m-%dT%H:%M:%S", localtime $t+int(rand(1000)) + 200;
+$finishdate .= sprintf ".%03d", ($t-int($t))*1000; # without rounding
+
 
 my $testpostdata='{
     "feature": "Bankroll",
@@ -94,15 +106,108 @@ my $testpostdata='{
     "suiteUid": "'.$suiterid.'",
     "testAuthor": "John Doe",
     "testDuration": 4002,
-    "testFinishDate": "'.$date.'",
+    "testFinishDate": "'.$finishdate.'",
     "testName": "FundsAdd",
     "testResult": "PASS",
-    "testStartDate": "'.$date.'",
-    "testUid": "'.$testrid.'",
+    "testStartDate": "'.$startdate.'",
+    "testUid": "'.randomUUID().'",
     "testrailId": "C4452748"
 }
 
 ';
+
+my $testpostdata2='{
+    "feature": "Cashout",
+    "logLines": [
+        "this log line - ==================== TESTRAIL REPORT ====================",
+        "2021-11-27 19:02:16 - [INFO]:[Th167] - RunName: blabla",
+        "2021-11-27 19:02:16 - [INFO]:[Th167] - ReportURL: http://testrail.com/index.php?/plans/view/154767",
+        "2021-11-27 19:02:20 - [INFO]:[Th167] - LoadingPage remained open for 2 sec",
+        "[FONT-WEIGHT:bold;COLOR:Green]2021-11-27 19:03:05 - [PASS]:[Th167] - Login Pass",
+        "[FONT-WEIGHT:bold;COLOR:Red]2021-11-27 19:03:05 - [FAIL]:[Th167] - [590ab7cc-3190-4895-90f7-3ed0aa9a4009]Login Failed",
+        "2021-11-27 19:03:10 - [INFO]:[Th167] - JVM MEMORY: Free [1643 Mb]. Used [3246 Mb]"
+    ],
+    "screenshotFiles": [
+        {
+            "screenshotBase64": "PGh0bWw+PGhlYWQ+PHRpdGxlPlRoaXMgaXMgdGVzdCBodG1sPC90aXRsZT48L2hlYWQ+PGJvZHk+PHA+VGhpcyBpcyB0ZXN0IGh0bWwgcGFnZSB5b3VyIHNuYXBzaG90IGNhbiBiZSBoZXJlPC9wPjwvYm9keT48L2h0bWw+",
+            "screenshotUid": "590ab7cc-3190-4895-90f7-3ed0aa9a4009",
+	    "screenshotType": "text/html; charset=utf-8"
+        }
+    ],
+    "suiteUid": "'.$suiterid.'",
+    "testAuthor": "John Doe",
+    "testDuration": 4002,
+    "testFinishDate": "'.$finishdate.'",
+    "testName": "FundsDeduct",
+    "testResult": "PASS",
+    "testStartDate": "'.$startdate.'",
+    "testUid": "'.randomUUID().'",
+    "testrailId": "C44527499"
+}
+
+';
+my $testpostdata3='{
+    "feature": "Withdraw",
+    "logLines": [
+        "this log line - ==================== TESTRAIL REPORT ====================",
+        "2021-11-27 19:02:16 - [INFO]:[Th167] - RunName: blabla",
+        "2021-11-27 19:02:16 - [INFO]:[Th167] - ReportURL: http://testrail.com/index.php?/plans/view/154767",
+        "2021-11-27 19:02:20 - [INFO]:[Th167] - LoadingPage remained open for 2 sec",
+        "[FONT-WEIGHT:bold;COLOR:Green]2021-11-27 19:03:05 - [PASS]:[Th167] - Login Pass",
+        "[FONT-WEIGHT:bold;COLOR:Red]2021-11-27 19:03:05 - [FAIL]:[Th167] - [590ab7cc-3190-4895-90f7-3ed0aa9a4009]Login Failed",
+        "2021-11-27 19:03:10 - [INFO]:[Th167] - JVM MEMORY: Free [1643 Mb]. Used [3246 Mb]"
+    ],
+    "screenshotFiles": [
+        {
+            "screenshotBase64": "PGh0bWw+PGhlYWQ+PHRpdGxlPlRoaXMgaXMgdGVzdCBodG1sPC90aXRsZT48L2hlYWQ+PGJvZHk+PHA+VGhpcyBpcyB0ZXN0IGh0bWwgcGFnZSB5b3VyIHNuYXBzaG90IGNhbiBiZSBoZXJlPC9wPjwvYm9keT48L2h0bWw+",
+            "screenshotUid": "590ab7cc-3190-4895-90f7-3ed0aa9a4009",
+	    "screenshotType": "text/plain; charset=utf-8"
+        }
+    ],
+    "suiteUid": "'.$suiterid.'",
+    "testAuthor": "John Doe",
+    "testDuration": 4002,
+    "testFinishDate": "'.$finishdate.'",
+    "testName": "Another test",
+    "testResult": "PASS",
+    "testStartDate": "'.$startdate.'",
+    "testUid": "'.randomUUID().'",
+    "testrailId": "C44527490"
+}
+
+';
+
+my $testpostdata4='{
+    "feature": "Navigation",
+    "logLines": [
+        "this log line - ==================== TESTRAIL REPORT ====================",
+        "2021-11-27 19:02:16 - [INFO]:[Th167] - RunName: blabla",
+        "2021-11-27 19:02:16 - [INFO]:[Th167] - ReportURL: http://testrail.com/index.php?/plans/view/154767",
+        "2021-11-27 19:02:20 - [INFO]:[Th167] - LoadingPage remained open for 2 sec",
+        "[FONT-WEIGHT:bold;COLOR:Green]2021-11-27 19:03:05 - [PASS]:[Th167] - Login Pass",
+        "[FONT-WEIGHT:bold;COLOR:Red]2021-11-27 19:03:05 - [FAIL]:[Th167] - [590ab7cc-3190-4895-90f7-3ed0aa9a4009]Login Failed",
+        "2021-11-27 19:03:10 - [INFO]:[Th167] - JVM MEMORY: Free [1643 Mb]. Used [3246 Mb]"
+    ],
+    "screenshotFiles": [
+        {
+            "screenshotBase64": "PGh0bWw+PGhlYWQ+PHRpdGxlPlRoaXMgaXMgdGVzdCBodG1sPC90aXRsZT48L2hlYWQ+PGJvZHk+PHA+VGhpcyBpcyB0ZXN0IGh0bWwgcGFnZSB5b3VyIHNuYXBzaG90IGNhbiBiZSBoZXJlPC9wPjwvYm9keT48L2h0bWw+",
+            "screenshotUid": "590ab7cc-3190-4895-90f7-3ed0aa9a4009",
+	    "screenshotType": "text/plain; charset=utf-8"
+        }
+    ],
+    "suiteUid": "'.$suiterid2.'",
+    "testAuthor": "John Doe",
+    "testDuration": 4002,
+    "testFinishDate": "'.$finishdate.'",
+    "testName": "Another test junk",
+    "testResult": "PASS",
+    "testStartDate": "'.$startdate.'",
+    "testUid": "'.randomUUID().'",
+    "testrailId": "C44527491"
+}
+
+';
+
        # "screenshotType": "text/html; charset=utf-8"
 $testURL="http://localhost/FastAutoReporter/api/reporter/test/add.php";
 $testURL =~ tr/'/\"/;
@@ -204,6 +309,7 @@ print "$runresponse \n";
 #print Dumper($rundataArray);
 ################################### call create suite
     my ($suiteresponsecode,$suiteresponse) = postWebPage($suiteURL,$useragent,$suitepostdata);
+    my ($suiteresponsecode,$suiteresponse) = postWebPage($suiteURL,$useragent,$suitepostdata2);
 
 
     if($suiteresponsecode==200)
@@ -213,7 +319,10 @@ print "$runresponse \n";
 	#print Dumper($suitedataArray);
 ################################# call create test and add logs
 	my ($testresponsecode,$testresponse) = postWebPage($testURL,$useragent,$testpostdata);
-
+	my ($testresponsecode,$testresponse) = postWebPage($testURL,$useragent,$testpostdata2);
+	my ($testresponsecode,$testresponse) = postWebPage($testURL,$useragent,$testpostdata3);
+	my ($testresponsecode,$testresponse) = postWebPage($testURL,$useragent,$testpostdata4);
+	# yeah yeah I am calling twice checking once :)
 	if($testresponsecode==200)
 	{
 	    print "$testresponse \n";
