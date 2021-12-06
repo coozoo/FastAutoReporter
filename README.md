@@ -150,7 +150,7 @@ MariaDB prefarable.
 
 Just keep in mind it's just approximate settings. It's possible that you require less or more memory (really I don't think that you need more. Our reports pretty heavy and it's fast enough) for some them everything depends on amount of your data.
 
-    And don't forget to enable events `event_scheduler=ON` it's important for autofinish runs in case if your system crashed and unable to call run finish endpoint. As well it is used for cleaning purposes to remove old logs and test runs from DB (see [Events](#events) section below).
+And don't forget to enable events `event_scheduler=ON` it's important for autofinish runs in case if your system crashed and unable to call run finish endpoint. As well it is used for cleaning purposes to remove old logs and test runs from DB (see [Events](#events) section below).
     
 <details>
   <summary>
