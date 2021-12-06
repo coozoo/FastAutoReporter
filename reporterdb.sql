@@ -387,7 +387,7 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `delete_old_runs` (IN `number_of_days` INT,
 END$$
 
 DROP PROCEDURE IF EXISTS `get_blamed`$$
-CREATE DEFINER=`admin`@`%` PROCEDURE `get_blamed` (IN `days` INT, IN `statuses` TEXT, IN `who` TEXT, IN `teamid` INT, IN `runid` INT)  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_blamed` (IN `days` INT, IN `statuses` TEXT, IN `who` TEXT, IN `teamid` INT, IN `runid` INT)  BEGIN
     declare statusesOri text;
     declare whoOri text;
     declare querySelectPart text;
@@ -1098,7 +1098,7 @@ BEGIN
 END$$
 
 DROP PROCEDURE IF EXISTS `mesure_time_execution`$$
-CREATE DEFINER=`admin`@`%` PROCEDURE `mesure_time_execution` ()  BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `mesure_time_execution` ()  BEGIN
     declare count,RunningTimeSec,RunningTime,t1,t2 bigint;
     SET t1 = FROM_UNIXTIME(UNIX_TIMESTAMP(CONCAT(DATE(NOW()), ' ', CURTIME(3))));
     SET count=0;
@@ -1488,13 +1488,13 @@ DELIMITER $$
 -- Events
 --
 DROP EVENT IF EXISTS `close_runs_in_progress`$$
-CREATE DEFINER=`admin`@`%` EVENT `close_runs_in_progress` ON SCHEDULE EVERY 3 MINUTE STARTS TIMESTAMP(NOW()+INTERVAL 1 MINUTE) ON COMPLETION NOT PRESERVE ENABLE DO call close_running$$
+CREATE DEFINER=`root`@`localhost` EVENT `close_runs_in_progress` ON SCHEDULE EVERY 3 MINUTE STARTS TIMESTAMP(NOW()+INTERVAL 1 MINUTE) ON COMPLETION NOT PRESERVE ENABLE DO call close_running$$
 
 DROP EVENT IF EXISTS `remove_old_dev_runs`$$
-CREATE DEFINER=`admin`@`%` EVENT `remove_old_dev_runs` ON SCHEDULE EVERY 1 DAY STARTS CONCAT(DATE(NOW()+INTERVAL 1 DAY ), ' 00:00:00') ON COMPLETION NOT PRESERVE ENABLE DO call delete_old_runs(7,true)$$
+CREATE DEFINER=`root`@`localhost` EVENT `remove_old_dev_runs` ON SCHEDULE EVERY 1 DAY STARTS CONCAT(DATE(NOW()+INTERVAL 1 DAY ), ' 00:00:00') ON COMPLETION NOT PRESERVE ENABLE DO call delete_old_runs(7,true)$$
 
 DROP EVENT IF EXISTS `remove_old_logs`$$
-CREATE DEFINER=`admin`@`%` EVENT `remove_old_logs` ON SCHEDULE EVERY 1 DAY STARTS CONCAT(DATE(NOW()+INTERVAL 1 DAY ), ' 00:00:00') ON COMPLETION NOT PRESERVE ENABLE DO call delete_old_logs(30)$$
+CREATE DEFINER=`root`@`localhost` EVENT `remove_old_logs` ON SCHEDULE EVERY 1 DAY STARTS CONCAT(DATE(NOW()+INTERVAL 1 DAY ), ' 00:00:00') ON COMPLETION NOT PRESERVE ENABLE DO call delete_old_logs(30)$$
 
 DELIMITER ;
 SET FOREIGN_KEY_CHECKS=1;
