@@ -338,7 +338,7 @@ Here list of procedures used in project, purpose and examples how to call them:
        <b>IN <i>startdate</i> DATETIME</b> - date from;<br>
        <b>IN <i>enddate</i> DATETIME</b> - date till;<br>
   <br><b><i><u>Examples:</u></i></b><br>
-       <i>call get_test_history('LBA_DEV_Functional','successfulLoginLBA','2021-01-13 08:23',NULL)</i> - returns execution history by names from date<br>
+       <i>call get_test_history('DEV_FunctionalTestRun','successfulLogin','2021-01-13 08:23',NULL)</i> - returns execution history by names from date<br>
 </details>
 
 ### Events
