@@ -12,11 +12,17 @@ There is some integration with testrail you can preview and navigate to suite/te
 
 Start page with list of runs:
 
-<img src="https://user-images.githubusercontent.com/25594311/144766609-e9e10633-dff3-44b3-a044-52aeed24218f.png" width="100%"></img> 
+<img src="https://user-images.githubusercontent.com/25594311/144933664-c1a4b2f1-8e73-4dba-a8da-615450ffa1c7.png" width="100%"></img> 
 
-Run example:
+Run examples:
 
 <img src="https://user-images.githubusercontent.com/25594311/144766701-4cdc91f9-3e16-43b4-8804-815ee00a6b99.png" width="100%"></img> 
+
+<img src="https://user-images.githubusercontent.com/25594311/144932531-73324ad7-18c0-4b42-b812-9b55f6f69585.png" width="100%"></img>
+
+Execution statistic (run times and fail success stat):
+
+<img src="https://user-images.githubusercontent.com/25594311/144932521-2154a516-39c5-4adb-a2a4-18e468bc0f85.png" width="100%"></img> 
 
 
 ## Installation
