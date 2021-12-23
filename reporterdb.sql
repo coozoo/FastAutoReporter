@@ -1,15 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 4.9.1
+-- version 5.1.1-1.fc34
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Dec 03, 2021 at 05:20 PM
--- Server version: 10.4.8-MariaDB-log
--- PHP Version: 7.3.10
+-- Host: localhost
+-- Generation Time: Dec 22, 2021 at 01:58 PM
+-- Server version: 10.5.12-MariaDB
+-- PHP Version: 7.4.26
 
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -106,12 +105,11 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `add_suite` (IN `runUid` VARCHAR(255
 	set run_id=(select id from run where r_run_uid=runUid);
     set suite_id=(select id from suite where s_suite_uid=suiteUid);
 	IF suite_id is null THEN
-		insert into suite (s_suite_name, s_suite_uid)
-        values (suiteName, suiteUid);
+		insert into suite (s_suite_name, s_suite_uid, s_run_id)
+        values (suiteName, suiteUid, run_id);
 		SET suite_id=(SELECT LAST_INSERT_ID());
     END IF;
-	insert into run_suite (run_id, suite_id)
-	values (run_id, suite_id);
+    
 	select run_id,suite_id;
     
     COMMIT WORK;
@@ -172,15 +170,13 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `add_test` (IN `additionalInfo` LONG
 			END IF;
 		END IF;
 
-		insert into test (t_additional_info, t_defect, feature_id, t_jira_id, result_id, test_author_id, t_test_run_duration, t_test_finish_date, t_test_name, t_test_start_date, t_test_uid, t_test_video, t_testrail_id)
-		values (additionalInfo, defect, feature_id, jiraId, testResult_id, testAuthor_id, testDuration, testFinishDate_date, testName, testStartDate_date, testUid, testVideoFileName, testrailId);
-        SET test_id=(SELECT LAST_INSERT_ID());
-        
         select reporter.run.id as runid,reporter.suite.id as suiteid 
         into run_id, suite_id 
-        from reporter.run,reporter.run_suite,reporter.suite where s_suite_uid=suiteUid AND reporter.suite.id=reporter.run_suite.`suite_id` AND reporter.run_suite.`run_id`=reporter.run.id;
-        
-        insert into suite_test (suite_id, test_id) values (suite_id, test_id);
+        from reporter.run,reporter.suite where s_suite_uid=suiteUid AND reporter.suite.s_run_id=reporter.run.id;
+		
+		insert into test (t_additional_info, t_defect, feature_id, t_jira_id, result_id, test_author_id, t_test_run_duration, t_test_finish_date, t_test_name, t_test_start_date, t_test_uid, t_test_video, t_testrail_id, t_suite_id)
+		values (additionalInfo, defect, feature_id, jiraId, testResult_id, testAuthor_id, testDuration, testFinishDate_date, testName, testStartDate_date, testUid, testVideoFileName, testrailId, suite_id);
+        SET test_id=(SELECT LAST_INSERT_ID());
         
         UPDATE reporter.suite SET reporter.suite.s_suite_finish_date = testFinishDate_date WHERE reporter.suite.id = suite_id;
         
@@ -361,7 +357,7 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `delete_old_logs` (IN `number_of_days` INT)
 
 -- delete old ids from mapping table for logs that aren't existing anymore
 --    delete FROM reporter.test_log where log_id not in (SELECT id FROM log);
-    delete FROM test_log where log_id<(SELECT min(id) FROM reporter.log);
+--    delete FROM test_log where log_id<(SELECT min(id) FROM reporter.log);
     SET FOREIGN_KEY_CHECKS=1;
 END$$
 
@@ -374,15 +370,10 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `delete_old_runs` (IN `number_of_days` INT,
     delete `reporter`.`run` from `reporter`.`run`,
                                  `reporter`.`suite`,
                                  `reporter`.`test`,
-                                 `reporter`.`run_suite`,
-                                 `reporter`.`suite_test`,
-                                 `reporter`.`log`,
-                                 `reporter`.`test_log`
-    where  `run`.`r_run_start_date`<DATE_SUB(current_timestamp,INTERVAL number_of_days DAY) AND `run`.`r_is_developement_run`=is_dev_run AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-        AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-        `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-        AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
-        `reporter`.`log`.`id` = `reporter`.`test_log`.`log_id` and `reporter`.`test`.`id` = `reporter`.`test_log`.`test_id`);
+                                 `reporter`.`log`
+    where  `run`.`r_run_start_date`<DATE_SUB(current_timestamp,INTERVAL number_of_days DAY) AND `run`.`r_is_developement_run`=is_dev_run AND (reporter.suite.s_run_id=reporter.run.`id` AND
+        `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
+        `reporter`.`log`.`l_test_id` = `reporter`.`test`.`id`);
     SET FOREIGN_KEY_CHECKS=1;
 END$$
 
@@ -404,7 +395,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_blamed` (IN `days` INT, IN `sta
 
 
     set querySelectPart="select `run`.`id` as RUNID,`test`.`id` as TESTID,`author`.`a_author_name` AS Author,s_suite_name as SuiteName,t_test_name as TestName,t_testrail_id as TestRailID,r_run_start_date as RunStartDate,r_run_finish_date as RunFinishDate,TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), \"%H:%i:%s\") as TestDuration,re_result_name as TestResult,t_defect as Defect
-from `reporter`.`run`,`reporter`.`suite`,`reporter`.`test`,`reporter`.`run_suite`,`reporter`.`suite_test`,`reporter`.`result`,`reporter`.`author`
+from `reporter`.`run`,`reporter`.`suite`,`reporter`.`test`,`reporter`.`result`,`reporter`.`author`
 where ";
 
     IF runid is NOT NULL THEN
@@ -481,10 +472,8 @@ where ";
         SET queryWherePart = CONCAT(queryWherePart, " AND ");
     End if;
 -- r_is_developement_run=false AND
-    SET @query = CONCAT(querySelectPart, queryWherePart, "  (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-    AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-         `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-    AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
+    SET @query = CONCAT(querySelectPart, queryWherePart, "  (reporter.suite.s_run_id=reporter.run.`id`
+    AND `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
          `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`) ",
                         "order by `author`.`a_author_name`,s_suite_name,t_test_name,`test`.`id` DESC");
 
@@ -573,15 +562,11 @@ BEGIN
              from `reporter`.`run`,
                   `reporter`.`suite`,
                   `reporter`.`test`,
-                  `reporter`.`run_suite`,
-                  `reporter`.`suite_test`,
                   `reporter`.`result`,
                   `reporter`.`feature`
              where `reporter`.`run`.`id` = runidvar
-               AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-                 AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-                    `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-                 AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
+               AND (reporter.suite.s_run_id=reporter.run.`id` AND
+                    `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id` AND
                     `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND
                     `reporter`.`test`.`feature_id`=`reporter`.`feature`.`id`)
              group by SuiteTable_FeatureID
@@ -602,16 +587,12 @@ BEGIN
     from `reporter`.`run`,
          `reporter`.`suite`,
          `reporter`.`test`,
-         `reporter`.`run_suite`,
-         `reporter`.`suite_test`,
          `reporter`.`result`,
          `reporter`.`author`,
          `reporter`.`feature`
     where `reporter`.`run`.`id` = runidvar
-      AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-        AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-           `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-        AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
+      AND (reporter.suite.s_run_id=reporter.run.`id` AND
+           `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
            `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND
            `reporter`.`test`.`feature_id`=`reporter`.`feature`.`id` and
            `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`)
@@ -649,10 +630,9 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_runs` (IN `userenv` VARCHAR(255
 '</td><td>',CAST(SUM(`re_result_name` = 'SKIP') as char),
 '</td><td>',CAST(SUM(`re_result_name` = 'PASS') as char),
 '</td><td>',CAST(COUNT(*) as char),'</td>')
-	from `reporter`.`run` FORCE INDEX(PRIMARY),`reporter`.`suite`,`reporter`.`test`,`reporter`.`run_suite`,`reporter`.`suite_test`,`reporter`.`result` FORCE INDEX(PRIMARY)
-	where `reporter`.`run`.`id`=RUNID AND (`reporter`.`run`.`id`=`reporter`.`run_suite`.`run_id`
-				AND `reporter`.`run_suite`.`suite_id`=`reporter`.`suite`.`id` AND `reporter`.`suite_test`.`suite_id`=`reporter`.`suite`.`id`
-                AND `reporter`.`suite_test`.`test_id`=`reporter`.`test`.`id` AND `reporter`.`test`.`result_id`=`reporter`.`result`.`id`)),'<td></td><td></td><td></td><td></td><td></td>') as '<th>FAIL</th><th>ERROR</th><th>SKIP</th><th>PASS</th><th>Total</th>'
+	from `reporter`.`run` FORCE INDEX(PRIMARY),`reporter`.`suite`,`reporter`.`test`,`reporter`.`result` FORCE INDEX(PRIMARY)
+	where `reporter`.`run`.`id`=RUNID AND (reporter.suite.s_run_id=reporter.run.`id` AND `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id` 
+	AND `reporter`.`test`.`result_id`=`reporter`.`result`.`id`)),'<td></td><td></td><td></td><td></td><td></td>') as '<th>FAIL</th><th>ERROR</th><th>SKIP</th><th>PASS</th><th>Total</th>'
 	from `reporter`.`run` FORCE INDEX(PRIMARY),`reporter`.`environment`,`reporter`.`team` where ";
 
     /* don't forget to update count_runs procedure with the same conditions */
@@ -808,16 +788,12 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_run_details` (IN `RUNID` INT)  
                `reporter`.`team`,
                `reporter`.`suite`,
                `reporter`.`test`,
-               `reporter`.`run_suite`,
-               `reporter`.`suite_test`,
                `reporter`.`result`
           where run.id = RUNID
             AND run.environment_id = environment.id
             AND run.team_id = team.id
-            AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-              AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-                 `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-              AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
+            AND (reporter.suite.s_run_id=reporter.run.`id` AND
+                 `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id` AND
                  `reporter`.`test`.`result_id` = `reporter`.`result`.`id`)) as RunResult;
 
 END$$
@@ -942,14 +918,10 @@ BEGIN
              from `reporter`.`run`,
                   `reporter`.`suite`,
                   `reporter`.`test`,
-                  `reporter`.`run_suite`,
-                  `reporter`.`suite_test`,
                   `reporter`.`result`
              where `reporter`.`run`.`id` = runidvar
-               AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-                 AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-                    `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-                 AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
+               AND (reporter.suite.s_run_id=reporter.run.`id` AND
+                    `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
                     `reporter`.`test`.`result_id` = `reporter`.`result`.`id`)
              group by SuiteTable_SuiteID
              order by SuiteTable_SuiteID) as A;
@@ -969,15 +941,11 @@ BEGIN
     from `reporter`.`run`,
          `reporter`.`suite`,
          `reporter`.`test`,
-         `reporter`.`run_suite`,
-         `reporter`.`suite_test`,
          `reporter`.`result`,
          `reporter`.`author`
     where `reporter`.`run`.`id` = runidvar
-      AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-        AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-           `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-        AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
+      AND (reporter.suite.s_run_id=reporter.run.`id` AND
+           `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
            `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`)
     order by `suite`.`id`, `test`.`id`;
 
@@ -1031,17 +999,15 @@ BEGIN
     END IF;
     select count(l_screenshot_file_name) as metaamount
     from `reporter`.`log`,
-         `reporter`.`test_log`,
          `reporter`.`test`
     where test.id = TESTID
       and l_screenshot_file_name is not null
-      and (log.id = test_log.log_id and test.id = test_log.test_id);
+      and (`reporter`.`log`.`l_test_id` = `reporter`.`test`.`id`);
     select log.id as logid, IF(log.l_screenshot_file_name IS NULL,NULL,"--") as meta, log.l_log as logline
     from `reporter`.`log`,
-         `reporter`.`test_log`,
          `reporter`.`test`
     where test.id = TESTID
-      and (log.id = test_log.log_id and test.id = test_log.test_id);
+      and (`reporter`.`log`.`l_test_id` = `reporter`.`test`.`id`);
 END$$
 
 DROP PROCEDURE IF EXISTS `get_test_history`$$
@@ -1061,7 +1027,7 @@ BEGIN
          t_test_start_date as TestStartDate,t_test_finish_date as TestFinishDate,
          TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), \"%H:%i:%s\") as TestDuration,
          re_result_name as TestResult
-  FROM reporter.run,reporter.run_suite,reporter.test,reporter.result,reporter.suite,reporter.suite_test,reporter.environment,`reporter`.`author`
+  FROM reporter.run,reporter.test,reporter.result,reporter.suite,reporter.environment,`reporter`.`author`
   where ";
     IF startdate is NOT NULL THEN
         if queryWherePart <> '' then
@@ -1083,10 +1049,8 @@ BEGIN
 
     SET queryWherePart = CONCAT(queryWherePart, " r_run_name='", RUNNAME, "'"," AND t_test_name='",TESTNAME,"' ");
 
-    SET @query = CONCAT(querySelectPart, queryWherePart, " AND (`reporter`.`run`.`id`=`reporter`.`run_suite`.`run_id`
-    AND `reporter`.`run_suite`.`suite_id`=`reporter`.`suite`.`id` AND
-         `reporter`.`suite_test`.`suite_id`=`reporter`.`suite`.`id`
-    AND `reporter`.`suite_test`.`test_id`=`reporter`.`test`.`id` AND
+    SET @query = CONCAT(querySelectPart, queryWherePart, " AND (reporter.suite.s_run_id=reporter.run.`id`
+    AND `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
          `reporter`.`test`.`result_id`=`reporter`.`result`.`id` AND
          `reporter`.`run`.`environment_id`=`reporter`.`environment`.id AND `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`)
   order by `reporter`.`run`.`id` desc");
@@ -1170,8 +1134,10 @@ CREATE TABLE IF NOT EXISTS `log` (
   `l_log_added_timestamp` datetime NOT NULL DEFAULT current_timestamp(),
   `l_screenshot_preview` blob DEFAULT NULL,
   `l_screenshot_type` varchar(127) DEFAULT NULL,
+  `l_test_id` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `l_log_added_timestamp_idx` (`l_log_added_timestamp`)
+  KEY `l_log_added_timestamp_idx` (`l_log_added_timestamp`),
+  KEY `fk_log_tid_idx` (`l_test_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
 
 -- --------------------------------------------------------
@@ -1256,36 +1222,6 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `run_suite`
---
-
-DROP TABLE IF EXISTS `run_suite`;
-CREATE TABLE IF NOT EXISTS `run_suite` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `run_id` bigint(20) NOT NULL,
-  `suite_id` bigint(20) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `run_suite_idx` (`run_id`,`suite_id`),
-  KEY `suite_run_idx` (`suite_id`,`run_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `run_testtype`
---
-
-DROP TABLE IF EXISTS `run_testtype`;
-CREATE TABLE IF NOT EXISTS `run_testtype` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `run_id` bigint(20) NOT NULL,
-  `testtype_id` bigint(20) NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `suite`
 --
 
@@ -1303,9 +1239,11 @@ CREATE TABLE IF NOT EXISTS `suite` (
   `s_skipped_tests_count` bigint(20) DEFAULT 0,
   `s_blocked_tests_count` bigint(20) DEFAULT 0,
   `s_errored_tests_count` bigint(20) DEFAULT 0,
+  `s_run_id` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `s_suite_uid` (`s_suite_uid`),
-  KEY `s_suite_name_idx` (`s_suite_name`)
+  KEY `s_suite_name_idx` (`s_suite_name`),
+  KEY `fk_suite_rid_idx` (`s_run_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -1315,40 +1253,8 @@ DROP TRIGGER IF EXISTS `calculateSuiteDuration`;
 DELIMITER $$
 CREATE TRIGGER `calculateSuiteDuration` BEFORE UPDATE ON `suite` FOR EACH ROW BEGIN
     IF (NEW.s_suite_finish_date IS NOT NULL) THEN
-        SET NEW.s_suite_run_duration=ROUND((select SUM(t_test_run_duration)/1000 from suite,suite_test,test where suite.id=old.id and suite.id=suite_id and test.id=test_id),0);
+        SET NEW.s_suite_run_duration=ROUND((select SUM(t_test_run_duration)/1000 from suite,test where suite.id=old.id and suite.id=t_suite_id),0);
     END IF;
-END
-$$
-DELIMITER ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `suite_test`
---
-
-DROP TABLE IF EXISTS `suite_test`;
-CREATE TABLE IF NOT EXISTS `suite_test` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `test_id` bigint(20) NOT NULL,
-  `suite_id` bigint(20) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `suite_test_idx` (`suite_id`,`test_id`),
-  KEY `test_suite_idx` (`test_id`,`suite_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Triggers `suite_test`
---
-DROP TRIGGER IF EXISTS `updateSuiteFinishDateTime`;
-DELIMITER $$
-CREATE TRIGGER `updateSuiteFinishDateTime` AFTER INSERT ON `suite_test` FOR EACH ROW BEGIN
-    SET @testFinishDateTime = (SELECT t_test_finish_date FROM reporter.test WHERE reporter.test.id = NEW.test_id);
-    UPDATE reporter.suite
-    SET reporter.suite.s_suite_finish_date = @testFinishDateTime
-    WHERE reporter.suite.id = NEW.suite_id;
-    SET @runId = (SELECT run_id FROM reporter.run_suite WHERE reporter.run_suite.suite_id = NEW.suite_id);
-    UPDATE reporter.run SET reporter.run.r_run_finish_date = @testFinishDateTime WHERE reporter.run.id = @runId;
 END
 $$
 DELIMITER ;
@@ -1389,6 +1295,7 @@ CREATE TABLE IF NOT EXISTS `test` (
   `test_author_id` bigint(20) DEFAULT NULL,
   `t_test_video` varchar(255) DEFAULT NULL,
   `t_jira_id` varchar(255) DEFAULT NULL,
+  `t_suite_id` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `t_test_uid` (`t_test_uid`),
   KEY `t_test_name_idx` (`t_test_name`),
@@ -1396,8 +1303,24 @@ CREATE TABLE IF NOT EXISTS `test` (
   KEY `t_test_finish_date_idx` (`t_test_finish_date`),
   KEY `fk_test_fid_idx` (`feature_id`),
   KEY `fk_test_rid_idx` (`result_id`),
-  KEY `fk_test_taid_idx` (`test_author_id`)
+  KEY `fk_test_taid_idx` (`test_author_id`),
+  KEY `fk_test_sid_idx` (`t_suite_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Triggers `test`
+--
+DROP TRIGGER IF EXISTS `updateSuiteFinishDateTime`;
+DELIMITER $$
+CREATE TRIGGER `updateSuiteFinishDateTime` AFTER INSERT ON `test` FOR EACH ROW BEGIN
+    UPDATE reporter.suite
+    SET reporter.suite.s_suite_finish_date = NEW.t_test_finish_date
+    WHERE reporter.suite.id = NEW.t_suite_id;
+    SET @runId = (SELECT s_run_id FROM reporter.suite WHERE reporter.suite.`id` = NEW.`t_suite_id`);
+    UPDATE reporter.run SET reporter.run.r_run_finish_date = NEW.t_test_finish_date WHERE reporter.run.`id` = @runId;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -1411,23 +1334,6 @@ CREATE TABLE IF NOT EXISTS `testtype` (
   `tt_test_type_name` varchar(255) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tt_test_type_name` (`tt_test_type_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `test_log`
---
-
-DROP TABLE IF EXISTS `test_log`;
-CREATE TABLE IF NOT EXISTS `test_log` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `log_id` bigint(20) NOT NULL,
-  `test_id` bigint(20) NOT NULL,
-  `tl_add_timestamp` datetime DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `test_log_idx` (`test_id`,`log_id`),
-  KEY `log_test_idx` (`log_id`,`test_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -1454,6 +1360,12 @@ ALTER TABLE `test` ADD FULLTEXT KEY `t_test_name_ftidx` (`t_test_name`);
 --
 
 --
+-- Constraints for table `log`
+--
+ALTER TABLE `log`
+  ADD CONSTRAINT `fk_log_tid` FOREIGN KEY (`l_test_id`) REFERENCES `test` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
 -- Constraints for table `run`
 --
 ALTER TABLE `run`
@@ -1462,18 +1374,10 @@ ALTER TABLE `run`
   ADD CONSTRAINT `fk_run_ttid` FOREIGN KEY (`test_type_id`) REFERENCES `testtype` (`id`);
 
 --
--- Constraints for table `run_suite`
+-- Constraints for table `suite`
 --
-ALTER TABLE `run_suite`
-  ADD CONSTRAINT `fk_run_suite_rid` FOREIGN KEY (`run_id`) REFERENCES `run` (`id`),
-  ADD CONSTRAINT `fk_run_suite_sid` FOREIGN KEY (`suite_id`) REFERENCES `suite` (`id`);
-
---
--- Constraints for table `suite_test`
---
-ALTER TABLE `suite_test`
-  ADD CONSTRAINT `fk_suite_test_sid` FOREIGN KEY (`suite_id`) REFERENCES `suite` (`id`),
-  ADD CONSTRAINT `fk_suite_test_tid` FOREIGN KEY (`test_id`) REFERENCES `test` (`id`);
+ALTER TABLE `suite`
+  ADD CONSTRAINT `fk_suite_rid` FOREIGN KEY (`s_run_id`) REFERENCES `run` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
 --
 -- Constraints for table `test`
@@ -1481,6 +1385,7 @@ ALTER TABLE `suite_test`
 ALTER TABLE `test`
   ADD CONSTRAINT `fk_test_fid` FOREIGN KEY (`feature_id`) REFERENCES `feature` (`id`),
   ADD CONSTRAINT `fk_test_rid` FOREIGN KEY (`result_id`) REFERENCES `result` (`id`),
+  ADD CONSTRAINT `fk_test_sid` FOREIGN KEY (`t_suite_id`) REFERENCES `suite` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   ADD CONSTRAINT `fk_test_taid` FOREIGN KEY (`test_author_id`) REFERENCES `author` (`id`);
 
 DELIMITER $$

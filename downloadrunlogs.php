@@ -42,15 +42,11 @@
 			    from `reporter`.`run`,
 				`reporter`.`suite`,
 				`reporter`.`test`,
-				`reporter`.`run_suite`,
-				`reporter`.`suite_test`,
-				`reporter`.`log`,
-				`reporter`.`test_log`
-			    where  `run`.`id`=".$runid." AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
-				AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
-				`reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
-				AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
-				`reporter`.`log`.`id` = `reporter`.`test_log`.`log_id` and `reporter`.`test`.`id` = `reporter`.`test_log`.`test_id`);";
+				`reporter`.`log`
+			    where  `run`.`id`=".$runid."
+				AND (reporter.suite.s_run_id=reporter.run.`id` AND
+				`reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
+				`reporter`.`log`.`l_test_id` = `reporter`.`test`.`id`);";
     //echo($getlogsquery);
     $size=0;
     $logsdata="";

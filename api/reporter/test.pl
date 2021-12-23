@@ -328,7 +328,7 @@ print "$runresponse \n";
 	    print "$testresponse \n";
 	    #my $testdataArray = decode_json($testresponse);
 	    #print Dumper($testdataArray);
-	    sleep(5);
+	    #sleep(5);
 ############################### call finish run
 	    getWebPage("http://localhost/FastAutoReporter/api/reporter/run/finish.php?runuid=$runrid")
 	}
