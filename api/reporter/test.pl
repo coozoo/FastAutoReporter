@@ -139,7 +139,7 @@ my $testpostdata2='{
     "testDuration": 4002,
     "testFinishDate": "'.$finishdate.'",
     "testName": "FundsDeduct",
-    "testResult": "PASS",
+    "testResult": "SKIP",
     "testStartDate": "'.$startdate.'",
     "testUid": "'.randomUUID().'",
     "testrailId": "C44527499"
@@ -169,7 +169,7 @@ my $testpostdata3='{
     "testDuration": 4002,
     "testFinishDate": "'.$finishdate.'",
     "testName": "Another test",
-    "testResult": "PASS",
+    "testResult": "FAIL",
     "testStartDate": "'.$startdate.'",
     "testUid": "'.randomUUID().'",
     "testrailId": "C44527490"

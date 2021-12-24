@@ -182,6 +182,11 @@
 	$introtable.="</tr></tbody></table>";
 	
     }
+    else
+    {
+	printf("Error: %s\n", $mysqli->error);
+    }
+
 
 echo "<p><h3>Summary</h3>";
 echo $introtable;

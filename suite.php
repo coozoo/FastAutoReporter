@@ -579,14 +579,14 @@ echo "<td>&nbsp;&nbsp;<iframe allowtransparency=\"true\" src=\"statuspiechart.ph
 echo  "<td><table  style=\"width:100%;\"><tr><td>".$runtable."</td></tr><tr><td>&nbsp;</td></tr>";
 echo  "<tr><td style=\"float:right;\">";
 
-if($STATUS!="PASS")
+if($STATUS!="PASS" || $STATUS!="SKIP" )
 {
     echo "<a href='blame.php?lastdays=1&statuses=\"FAIL,ERROR\"&teamid=NULL&runid=".$runid."'>".
-    "<img src=\"img/icons/finger_pointing_at_you.png\" style=\"width:25px; height:20px\" title=\"Punish them\" alt=\"Punish them\"></a>";
+    "<img src=\"img/icons/finger_pointing_at_you.png\" style=\"width:25px; height:20px;\" title=\"Punish them\" alt=\"Punish them\"></a>";
 }
 else
 {
-    echo "<img src=\"img/icons/finger_pointing_at_you.png\" style=\"width:25px; height:20px\" title=\"This time without victims\" alt=\"This time without victims\">";
+    echo "<img src=\"img/icons/finger_pointing_at_you.png\" style=\"width:25px; height:20px; opacity:30%\" title=\"This time without victims\" alt=\"This time without victims\">";
 }
 
 echo "<table><tr><td>".$runtableresult."</td></tr></table></td></tr></table></td>";
