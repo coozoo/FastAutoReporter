@@ -338,7 +338,7 @@ foreach($suitekeys as $suitekey) {
 	{
 	    $SuiteStatusColID=$suitethcnt;
 	}
-	else if($columnname=="SuiteName")
+	else if($columnname=="SuiteName" || $columnname=="FeatureName")
 	{
 	    $SuiteNameColID=$suitethcnt;
 	}
