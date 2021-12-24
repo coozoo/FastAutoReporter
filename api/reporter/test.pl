@@ -139,7 +139,7 @@ my $testpostdata2='{
     "testDuration": 4002,
     "testFinishDate": "'.$finishdate.'",
     "testName": "FundsDeduct",
-    "testResult": "PASS",
+    "testResult": "SKIP",
     "testStartDate": "'.$startdate.'",
     "testUid": "'.randomUUID().'",
     "testrailId": "C44527499"
@@ -169,7 +169,7 @@ my $testpostdata3='{
     "testDuration": 4002,
     "testFinishDate": "'.$finishdate.'",
     "testName": "Another test",
-    "testResult": "PASS",
+    "testResult": "FAIL",
     "testStartDate": "'.$startdate.'",
     "testUid": "'.randomUUID().'",
     "testrailId": "C44527490"
@@ -328,7 +328,7 @@ print "$runresponse \n";
 	    print "$testresponse \n";
 	    #my $testdataArray = decode_json($testresponse);
 	    #print Dumper($testdataArray);
-	    sleep(5);
+	    #sleep(5);
 ############################### call finish run
 	    getWebPage("http://localhost/FastAutoReporter/api/reporter/run/finish.php?runuid=$runrid")
 	}

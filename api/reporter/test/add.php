@@ -158,17 +158,17 @@ t_jira_id
 			//print "key is here $i";
 			//print $arrayofscreenshots[$i]['screenshotUid'];
 			//print str_replace("[".$arrayofscreenshots[$i]['screenshotUid']."]", "", $logline)."\n";
-			$multiquery.="insert into log (l_log, l_screenshot_type, l_screenshot_file_name, l_screenshot_preview) values ('".mysqli_real_escape_string($mysqli,str_replace("[".$arrayofscreenshots[$i]['screenshotUid']."]", "", $logline))."',".((isset($arrayofscreenshots[$i]['screenshotType']))?"'".mysqli_real_escape_string($mysqli,$arrayofscreenshots[$i]['screenshotType'])."'":'NULL').",'".mysqli_real_escape_string($mysqli,base64_decode($arrayofscreenshots[$i]['screenshotBase64']))."','".mysqli_real_escape_string($mysqli,base64_decode($arrayofscreenshots[$i]['screenshotPreviewBase64']))."');
-				    set @lastlogid=(SELECT LAST_INSERT_ID());
-				    insert into test_log (test_id, log_id) values (".$json_decoded['test_id'].", @lastlogid);";
+			$multiquery.="insert into log (l_test_id,l_log, l_screenshot_type, l_screenshot_file_name, l_screenshot_preview) values (".$json_decoded['test_id'].",'".mysqli_real_escape_string($mysqli,str_replace("[".$arrayofscreenshots[$i]['screenshotUid']."]", "", $logline))."',".((isset($arrayofscreenshots[$i]['screenshotType']))?"'".mysqli_real_escape_string($mysqli,$arrayofscreenshots[$i]['screenshotType'])."'":'NULL').",'".mysqli_real_escape_string($mysqli,base64_decode($arrayofscreenshots[$i]['screenshotBase64']))."','".mysqli_real_escape_string($mysqli,base64_decode($arrayofscreenshots[$i]['screenshotPreviewBase64']))."');";
+//				    set @lastlogid=(SELECT LAST_INSERT_ID());
+//				    insert into test_log (test_id, log_id) values (".$json_decoded['test_id'].", @lastlogid);";
 			//print $multiquery1;
 		    }
 		    else //if($i==0)
 		    {
 			//print $logline."\n";
-			$multiquery.="insert into log (l_log) values ('".mysqli_real_escape_string($mysqli,$logline)."');
-				    set @lastlogid=(SELECT LAST_INSERT_ID());
-			 	    insert into test_log (test_id, log_id) values (".$json_decoded['test_id'].", @lastlogid);";
+			$multiquery.="insert into log (l_test_id,l_log) values (".$json_decoded['test_id'].",'".mysqli_real_escape_string($mysqli,$logline)."');";
+//				    set @lastlogid=(SELECT LAST_INSERT_ID());
+//			 	    insert into test_log (test_id, log_id) values (".$json_decoded['test_id'].", @lastlogid);";
 		    }
 		    ++$i;
 		}
