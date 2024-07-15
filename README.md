@@ -205,7 +205,7 @@ reporterdb.sql - contains everything what you need to import
 
 ### Tables
 
-<img src="https://user-images.githubusercontent.com/25594311/109930953-e6abe980-7cd0-11eb-93ea-825ab3d43be7.png" width="100%"></img>
+<img src="[https://user-images.githubusercontent.com/25594311/109930953-e6abe980-7cd0-11eb-93ea-825ab3d43be7.png](https://private-user-images.githubusercontent.com/25594311/348725406-02019ce5-d33e-4cc1-80b2-5a2f9174ff42.png)" width="100%"></img>
 
 ### Procedures
 
