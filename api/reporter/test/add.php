@@ -52,7 +52,9 @@ function show_help() {
     "testResult": "PASS",
     "testStartDate": "2021-11-25T08:37:20.632+0000",
     "testUid": "00614A1E-5057-11EC-9DE9-99FC3179E075",
-    "testrailId": "C4452748"
+    "testrailId": "C4452748",
+    "jiraId":"JIR-123",
+    "xrayId":"JIR-222"
 }
 
 INFO
@@ -63,6 +65,8 @@ INFO
 *testDuration - duration of test in ms;
 *testResult - PASS, FAIL, SKIP, ERROR;
 *testrailId - id of case in testrail, you need to setup testrail user password to use this feature;
+*jiraId - jira issue id related to testcase;
+*xrayId - xray cloud issue id.
 ';
 }
 
@@ -92,6 +96,7 @@ if(isset($json_obj['suiteUid']) && isset($json_obj['testUid']) &&
     }
 /* can be null
 t_testrail_id
+t_xray_id
 t_defect
 t_test_run_duration
 t_additional_info
@@ -100,7 +105,7 @@ t_test_video
 t_jira_id
 */
 
-    $query="call add_test(".((isset($json_obj['additionalInfo']))?"'".mysqli_real_escape_string($mysqli,$json_obj['additionalInfo'])."'":'NULL').",".
+    $query="call add_test_v2(".((isset($json_obj['additionalInfo']))?"'".mysqli_real_escape_string($mysqli,$json_obj['additionalInfo'])."'":'NULL').",".
 				((isset($json_obj['defect']))?"'".mysqli_real_escape_string($mysqli,$json_obj['defect'])."'":'NULL').",'".
 				mysqli_real_escape_string($mysqli,$json_obj['feature'])."',".
 				((isset($json_obj['jiraId']))?"'".mysqli_real_escape_string($mysqli,$json_obj['jiraId'])."'":'NULL').",'".
@@ -113,8 +118,9 @@ t_jira_id
 				preg_replace('/\\+\d+/','',$json_obj['testStartDate'])."','".
 				$json_obj['testUid']."',".
 				((isset($json_obj['testVideoFileName']))?"'".mysqli_real_escape_string($mysqli,$json_obj['testVideoFileName'])."'":'NULL').",".
-				((isset($json_obj['testrailId']))?"'".mysqli_real_escape_string($mysqli,$json_obj['testrailId'])."'":'NULL').");";
-//    call add_test('additionalInfo','defect','feature','jiraId','00614A1E-5057-11EC-9DE9-99FC3179E075','testAuthor',1000,date_add(now(),interval 2 minute),'testName','PASS',now(),'testUid','testVideoFileName','testrailId');
+				((isset($json_obj['testrailId']))?"'".mysqli_real_escape_string($mysqli,$json_obj['testrailId'])."'":'NULL').",".
+				((isset($json_obj['xrayId']))?"'".mysqli_real_escape_string($mysqli,$json_obj['xrayId'])."'":'NULL').");";
+//    call add_test('additionalInfo','defect','feature','jiraId','00614A1E-5057-11EC-9DE9-99FC3179E075','testAuthor',1000,date_add(now(),interval 2 minute),'testName','PASS',now(),'testUid','testVideoFileName','testrailId','xrayId');
 
     //echo($query);
     if($result = $mysqli->query($query))

@@ -66,7 +66,7 @@
     //here should be exact procedure with same parameters and conditions to count amount of total available runs
     //this one made only for debugging
     //$tablequery="call get_blamed(1,'FAIL,ERROR,SKIP','Vladimir Ruzakov');";
-    $tablequery="call get_blamed($lastdays,'".$statuses."','".$who."',".$teamid.",".$runid.");";
+    $tablequery="call get_blamed_v2($lastdays,'".$statuses."','".$who."',".$teamid.",".$runid.");";
 //    echo($tablequery);
 
     $introtable="<table id=\"introtablebody\" class=\"blueTable sortable\">";
@@ -87,13 +87,14 @@
 	$trcnt=0;
 	$clmncnt=0;
 	$listoftestrailcases="";
+	$listofxraycases="";
 	while($rows=mysqli_fetch_array($result)){
 	    //echo "<tr id=\"PASS\">";
 	    $tableinfobody.="<tr>";
 	    foreach ($finfo as $val) {
 		if($trcnt==0)
 		{
-		    if($val->name!="RUNID" && $val->name!="TESTID")
+		    if($val->name!="RUNID" && $val->name!="TESTID" &&  ($val->name!="TestRailID" || $testrailEnabled) &&  ($val->name!="XrayID" || $xrayEnabled) )
 		    {
 			$tableinfoheader.="<th>".$val->name."</th>";
 		    }
@@ -101,12 +102,23 @@
 		switch($val->name)
 		{
 		    case "TestRailID":
+			if(!$testrailEnabled)break;
 			$tableinfobody.="<td value=\"".$rows[$val->name]."\"><a href=\"gettestrailcase.php?caseid=".$rows[$val->name]."\" onclick=\"event.stopPropagation();
 										window.open('gettestrailcase.php?caseid=".$rows[$val->name]."','newwindow','status=no,location=no,toolbar=no,menubar=no,resizable=yes,scrollbars=yes,width=1024,height=500,top='+this.getBoundingClientRect().top+',left='+this.getBoundingClientRect().left).focus();return false;\"
 										 target=\"_blank\">".$rows[$val->name]."</a></td>";
 			if($rows[$val->name]!="")
 			{
 			    $listoftestrailcases.=$rows[$val->name].",";
+			}
+			break;
+		    case "XrayID":
+			if(!$xrayEnabled)break;
+			$tableinfobody.="<td value=\"".$rows[$val->name]."\"><a href=\"getxraycase.php?caseid=".$rows[$val->name]."\" onclick=\"event.stopPropagation();
+										window.open('getxraycase.php?caseid=".$rows[$val->name]."','newwindow','status=no,location=no,toolbar=no,menubar=no,resizable=yes,scrollbars=yes,width=1024,height=500,top='+this.getBoundingClientRect().top+',left='+this.getBoundingClientRect().left).focus();return false;\"
+										 target=\"_blank\">".$rows[$val->name]."</a></td>";
+			if($rows[$val->name]!="")
+			{
+			    $listofxraycases.=$rows[$val->name].",";
 			}
 			break;
 		    case "RUNID":
@@ -169,6 +181,10 @@
 	{
 	    $listoftestrailcases=rtrim($listoftestrailcases,",");
 	}
+	if($listofxraycases!="")
+	{
+	    $listofxraycases=rtrim($listofxraycases,",");
+	}
 //	$introtablebody.="<tr><td value=\"".$prevperson."\"><a href=\"#$prevperson\">".$prevperson."</a></td><td><a href='".basename($_SERVER['PHP_SELF'])."?who=\"".$prevperson."\"&statuses=\"".$statuses."\"'>$prevcounter</a></td></tr>";
 	$clmncnt=substr_count($tableinfoheader,'<th>');
 	//echo($clmncnt);
@@ -192,10 +208,12 @@ echo "<p><h3>Summary</h3>";
 echo $introtable;
 echo "</p><p><h4>Details</h4>";
 echo ("<button class=\"copybutton\" onclick=\"return copyTRs('hiddendiv');\">Copy TestRail IDs</button>");
+echo ("<button class=\"copybutton\" onclick=\"return copyTRs('hiddendivXRAY');\">Copy XRAY IDs</button>");
 echo $tableinfo;
 echo("</p>");
 
 echo("<div id=\"hiddendiv\" style=\"display: none;\">$listoftestrailcases</div>");
+echo("<div id=\"hiddendivXRAY\" style=\"display: none;\">$listofxraycases</div>");
 echo("<script  type=\"text/javascript\">
 function copyTRs(containerid)
 {

@@ -188,6 +188,81 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `add_test` (IN `additionalInfo` LONG
 
 END$$
 
+DROP PROCEDURE IF EXISTS `add_test_v2`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `add_test_v2`(IN `additionalInfo` LONGTEXT, IN `defect` VARCHAR(255), IN `feature` VARCHAR(255), IN `jiraId` VARCHAR(255), IN `suiteUid` VARCHAR(255), IN `testAuthor` VARCHAR(255), IN `testDuration` BIGINT, IN `testFinishDate` VARCHAR(255), IN `testName` VARCHAR(255), IN `testResult` VARCHAR(255), IN `testStartDate` VARCHAR(255), IN `testUid` VARCHAR(255), IN `testVideoFileName` VARCHAR(255), IN `testrailId` VARCHAR(255), IN `xrayId` VARCHAR(255))
+BEGIN
+    DECLARE feature_id BIGINT;
+    DECLARE testResult_id BIGINT;
+    DECLARE testAuthor_id BIGINT;
+    DECLARE test_id BIGINT;
+    DECLARE run_id BIGINT;
+    DECLARE suite_id BIGINT;
+    DECLARE testFinishDate_date DATETIME;
+    DECLARE testStartDate_date DATETIME;
+    DECLARE errno INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+	GET CURRENT DIAGNOSTICS CONDITION 1 errno = MYSQL_ERRNO;
+	SELECT errno AS MYSQL_ERROR;
+	ROLLBACK;
+    END;
+
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED ;
+    START TRANSACTION;
+    
+	SET testFinishDate_date=STR_TO_DATE(testFinishDate,'%Y-%m-%dT%T.%f');
+	SET testStartDate_date=STR_TO_DATE(testStartDate,'%Y-%m-%dT%T.%f');  
+
+	-- put creations into separate procedures if you need it somwhere else
+
+	-- check if such feature exists if no then add
+	SET feature_id = (select `id` from `feature` where `f_feature_name`=feature);
+	-- add new feature 
+	IF feature_id is null THEN
+	    INSERT INTO `feature` (`f_feature_name`)
+	    VALUES(feature);
+	    SET feature_id=(SELECT LAST_INSERT_ID());
+	END IF;
+        
+	-- check if such result exists if no then add
+	SET testResult_id = (select `id` from `result` where `re_result_name`=testResult);
+	-- add new result 
+	IF testResult_id is null THEN
+	    INSERT INTO `result` (`re_result_name`)
+	    VALUES(testResult);
+	    SET testResult_id=(SELECT LAST_INSERT_ID());
+	END IF;
+        
+        IF testAuthor is not null THEN
+	    -- check if such author exists if no then add
+	    SET testAuthor_id = (select `id` from `author` where `a_author_name`=testAuthor);
+	    -- add new author 
+	    IF testAuthor_id is null THEN
+		INSERT INTO `author` (`a_author_name`)
+		VALUES(testAuthor);
+		SET testAuthor_id=(SELECT LAST_INSERT_ID());
+	    END IF;
+	END IF;
+
+        select reporter.run.id as runid,reporter.suite.id as suiteid 
+        into run_id, suite_id 
+        from reporter.run,reporter.suite where s_suite_uid=suiteUid AND reporter.suite.s_run_id=reporter.run.id;
+	
+	insert into test (t_additional_info, t_defect, feature_id, t_jira_id, result_id, test_author_id, t_test_run_duration, t_test_finish_date, t_test_name, t_test_start_date, t_test_uid, t_test_video, t_testrail_id, t_suite_id,t_xray_id)
+	values (additionalInfo, defect, feature_id, jiraId, testResult_id, testAuthor_id, testDuration, testFinishDate_date, testName, testStartDate_date, testUid, testVideoFileName, testrailId, suite_id,xrayId);
+        SET test_id=(SELECT LAST_INSERT_ID());
+        
+        UPDATE reporter.suite SET reporter.suite.s_suite_finish_date = testFinishDate_date WHERE reporter.suite.id = suite_id;
+        
+        UPDATE reporter.run SET reporter.run.r_run_finish_date = testFinishDate_date,reporter.run.r_is_run_finished=0  WHERE reporter.run.id = run_id;
+        
+        select run_id,suite_id,test_id;
+
+    COMMIT WORK;
+
+END
+END$$
+
 DROP PROCEDURE IF EXISTS `close_running`$$
 CREATE DEFINER=`admin`@`%` PROCEDURE `close_running` ()  BEGIN
     declare maxduration,currentduration int;
@@ -512,6 +587,144 @@ where ";
 
 END$$
 
+DROP PROCEDURE IF EXISTS `get_blamed_v2`$$
+    CREATE DEFINER=`root`@`localhost` PROCEDURE `get_blamed_v2`(IN `days` INT, IN `statuses` TEXT, IN `who` TEXT, IN `teamid` INT, IN `runid` INT)
+BEGIN
+    declare statusesOri text;
+    declare whoOri text;
+    declare querySelectPart text;
+    declare queryWherePart text;
+    declare queryStatusWherePart text;
+    declare queryWhoWherePart text;
+    declare SubStrLen int default 0;
+    declare strLen int default 0;
+    set queryWherePart="";
+    set queryStatusWherePart="";
+    set queryWhoWherePart="";
+    set statusesOri=statuses;
+    set whoOri=who;
+
+
+    set querySelectPart="select `run`.`id` as RUNID,`test`.`id` as TESTID,`author`.`a_author_name` AS Author,s_suite_name as SuiteName,t_test_name as TestName,t_testrail_id as TestRailID,t_xray_id as XrayID,r_run_start_date as RunStartDate,r_run_finish_date as RunFinishDate,TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), \"%H:%i:%s\") as TestDuration,re_result_name as TestResult,t_defect as Defect
+from `reporter`.`run`,`reporter`.`suite`,`reporter`.`test`,`reporter`.`result`,`reporter`.`author`
+where ";
+
+    IF runid is NOT NULL THEN
+        if queryWherePart <> '' then
+            SET queryWherePart = CONCAT(queryWherePart, " AND ");
+        End if;
+        SET queryWherePart = CONCAT(queryWherePart, " `run`.`id`=", runid, " ");
+    END IF;
+
+
+    IF statuses IS NULL THEN
+        SET statuses = '';
+    END IF;
+    status_parts:
+    LOOP
+        SET strLen = LENGTH(statuses);
+        if queryStatusWherePart = '' then
+            SET queryStatusWherePart = CONCAT(queryStatusWherePart, " ( ");
+        End if;
+        SET queryStatusWherePart = CONCAT(queryStatusWherePart,"re_result_name='",SUBSTRING_INDEX(statuses, ',', 1), "' OR ");
+        SET SubStrLen = LENGTH(SUBSTRING_INDEX(statuses, ',', 1))+2;
+        SET statuses = MID(statuses, SubStrLen, strLen);
+        IF statuses = '' THEN
+            SET queryStatusWherePart =LEFT(queryStatusWherePart,LENGTH(queryStatusWherePart)-3);
+            SET queryStatusWherePart = CONCAT(queryStatusWherePart, " ) ");
+            LEAVE status_parts;
+        END IF;
+    END LOOP status_parts;
+
+    if (statusesOri is not null And statusesOri <> '' )  then
+        if queryWherePart <> '' then
+            SET queryWherePart = CONCAT(queryWherePart, " AND ");
+        End if;
+        SET queryWherePart = CONCAT(queryWherePart,queryStatusWherePart);
+    End if;
+
+
+    IF who IS NULL THEN
+        SET who = '';
+    END IF;
+
+    who_parts:
+    LOOP
+        SET strLen = LENGTH(who);
+        if queryWhoWherePart = '' then
+            SET queryWhoWherePart = CONCAT(queryWhoWherePart, " ( ");
+        End if;
+        SET queryWhoWherePart = CONCAT(queryWhoWherePart,"`author`.`a_author_name`='",SUBSTRING_INDEX(who, ',', 1), "' OR ");
+        SET SubStrLen = LENGTH(SUBSTRING_INDEX(who, ',', 1))+2;
+        SET who = MID(who, SubStrLen, strLen);
+        IF who = '' THEN
+            SET queryWhoWherePart =LEFT(queryWhoWherePart,LENGTH(queryWhoWherePart)-3);
+            SET queryWhoWherePart = CONCAT(queryWhoWherePart, " ) ");
+            LEAVE who_parts;
+        END IF;
+    END LOOP who_parts;
+
+    if (whoOri is not null AND whoOri<>'') then
+        if queryWherePart <> '' then
+            SET queryWherePart = CONCAT(queryWherePart, " AND ");
+        End if;
+        SET queryWherePart = CONCAT(queryWherePart,queryWhoWherePart);
+    End if;
+
+
+    IF days is NOT NULL AND runid is NULL THEN
+        if queryWherePart <> '' then
+            SET queryWherePart = CONCAT(queryWherePart, " AND ");
+        End if;
+        SET queryWherePart = CONCAT(queryWherePart, " t_test_finish_date>DATE_SUB(current_timestamp,INTERVAL ", days, " DAY) ");
+    END IF;
+
+    if queryWherePart <> '' then
+        SET queryWherePart = CONCAT(queryWherePart, " AND ");
+    End if;
+-- r_is_developement_run=false AND
+    SET @query = CONCAT(querySelectPart, queryWherePart, "  (reporter.suite.s_run_id=reporter.run.`id`
+    AND `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
+         `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`) ",
+                        "order by `author`.`a_author_name`,s_suite_name,t_test_name,`test`.`id` DESC");
+
+    /* select `author`.`a_author_name` AS Author,
+           `suite`.`id`                                                     as TestTable_SuiteID,
+            `test`.`id`                                                      as TestTable_TestID,
+            t_test_name                                                      as TestTable_TestName,
+            `test`.`t_test_uid`                                              as TestTable_TestUUID,
+            t_testrail_id                                                    as TestTable_TestRailID,
+            t_xray_id                                                    as TestTable_XrayID,
+            r_run_start_date                                     as RunStartDate,
+            r_run_finish_date                                    as RunFinishDate,
+            TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), "%H:%i:%s") as TestTable_TestDuration,
+            re_result_name                                                   as TestTable_TestResult,
+            t_defect as TestTable_Defect
+
+     from `reporter`.`run`,
+          `reporter`.`suite`,
+          `reporter`.`test`,
+          `reporter`.`run_suite`,
+          `reporter`.`suite_test`,
+          `reporter`.`result`,
+          `reporter`.`author`
+     where t_test_finish_date>DATE_SUB(current_timestamp,INTERVAL days DAY)
+     AND re_result_name<>'PASS'
+       AND (`reporter`.`run`.`id` = `reporter`.`run_suite`.`run_id`
+       AND `reporter`.`run_suite`.`suite_id` = `reporter`.`suite`.`id` AND
+            `reporter`.`suite_test`.`suite_id` = `reporter`.`suite`.`id`
+       AND `reporter`.`suite_test`.`test_id` = `reporter`.`test`.`id` AND
+            `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`)
+     order by `author`.`a_author_name`,`test`.`id` DESC;
+     */
+-- SELECT @query;
+    PREPARE statment1 FROM @query;
+    EXECUTE statment1;
+    DEALLOCATE PREPARE statment1;
+
+END
+END$$
+
 DROP PROCEDURE IF EXISTS `get_feature`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_feature` (IN `RUNID` INT, IN `UUID` VARCHAR(255))  get_suit :
 BEGIN
@@ -599,6 +812,98 @@ BEGIN
     order by f_feature_name, `test`.`id`;
 
 
+END$$
+
+DROP PROCEDURE IF EXISTS `get_feature_v2`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_feature_v2`(IN `RUNID` INT, IN `UUID` VARCHAR(255))
+get_suit :
+BEGIN
+    DECLARE runuuidvar VARCHAR(255);
+    DECLARE runidvar INT;
+    SET runuuidvar = UUID;
+    SET runidvar = RUNID;
+
+    IF runidvar is null THEN
+        SET runidvar = (SELECT `run`.`id`
+                        from `reporter`.`run`
+                        where r_run_uid = runuuidvar);
+    END IF;
+
+    IF runidvar = 0 OR runidvar is NULL THEN
+        LEAVE get_suit;
+    END IF;
+
+    select runuuidvar;
+    select runidvar;
+
+    call get_run_details(runidvar);
+
+
+    SELECT A.SuiteTable_FeatureID as SuiteTable_FeatureID,
+           SuiteTable_FeatureName,
+           (CASE
+                when SuiteTable_FAIL > 0 Then 'FAIL'
+                when `SuiteTable_ERROR` > 0 then 'ERROR'
+                when SuiteTable_TOTAL = SuiteTable_SKIP then 'SKIP'
+                when SuiteTable_TOTAL = SuiteTable_PASS then 'PASS'
+                when SuiteTable_TOTAL = (SuiteTable_PASS + SuiteTable_SKIP) then 'PASS'
+               END) as SuiteTable_FeatureStatus,
+           SuiteTable_FAIL,
+           `SuiteTable_ERROR`,
+           SuiteTable_SKIP,
+           SuiteTable_PASS,
+           SuiteTable_TOTAL
+    FROM (
+             SELECT COUNT(*)                                                   AS SuiteTable_TOTAL,
+                    SUM(`re_result_name` = 'PASS')                             AS SuiteTable_PASS,
+                    SUM(`re_result_name` = 'SKIP')                             AS SuiteTable_SKIP,
+                    SUM(`re_result_name` = 'FAIL')                             AS SuiteTable_FAIL,
+                    SUM(`re_result_name` = 'ERROR')                            AS `SuiteTable_ERROR`,
+                    `feature`.`id` as SuiteTable_FeatureID,
+                    f_feature_name                                                   as SuiteTable_FeatureName
+
+             from `reporter`.`run`,
+                  `reporter`.`suite`,
+                  `reporter`.`test`,
+                  `reporter`.`result`,
+                  `reporter`.`feature`
+             where `reporter`.`run`.`id` = runidvar
+               AND (reporter.suite.s_run_id=reporter.run.`id` AND
+                    `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id` AND
+                    `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND
+                    `reporter`.`test`.`feature_id`=`reporter`.`feature`.`id`)
+             group by SuiteTable_FeatureID
+             order by SuiteTable_FeatureName) as A;
+
+    -- t_test_start_date as TestTable_TestStartDate,t_test_finish_date as TestTable_TestFinishDate,
+    SELECT          `feature`.`id` as TestTable_FeatureID,
+                    `test`.`id`                                                      as TestTable_TestID,
+                    t_test_video	as TestTable_TestVideo,
+                    t_test_name                                                      as TestTable_TestName,
+                    `test`.`t_test_uid`                                              as TestTable_TestUUID,
+                    t_testrail_id                                                    as TestTable_TestRailID,
+                    t_xray_id                                                    as TestTable_XrayID,
+                    t_jira_id                                                    as TestTable_JiraID,
+                    TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), "%H:%i:%s") as TestTable_TestDuration,
+                    re_result_name                                                   as TestTable_TestResult,
+                    `author`.`a_author_name` AS TestTable_Author,
+                    t_defect as TestTable_Defect
+    from `reporter`.`run`,
+         `reporter`.`suite`,
+         `reporter`.`test`,
+         `reporter`.`result`,
+         `reporter`.`author`,
+         `reporter`.`feature`
+    where `reporter`.`run`.`id` = runidvar
+      AND (reporter.suite.s_run_id=reporter.run.`id` AND
+           `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
+           `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND
+           `reporter`.`test`.`feature_id`=`reporter`.`feature`.`id` and
+           `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`)
+    order by f_feature_name, `test`.`id`;
+
+
+END
 END$$
 
 DROP PROCEDURE IF EXISTS `get_runs`$$
@@ -991,6 +1296,203 @@ BEGIN
 
 END$$
 
+DROP PROCEDURE IF EXISTS `get_suit_v2`$$
+    CREATE DEFINER=`root`@`localhost` PROCEDURE `get_suit_v2`(IN `RUNID` INT, IN `UUID` VARCHAR(255))
+get_suit :
+BEGIN
+    DECLARE runuuidvar VARCHAR(255);
+    DECLARE runidvar INT;
+    SET runuuidvar = UUID;
+    SET runidvar = RUNID;
+
+    IF runidvar is null THEN
+        SET runidvar = (SELECT `run`.`id`
+                        from `reporter`.`run`
+                        where r_run_uid = runuuidvar);
+    END IF;
+
+    IF runidvar = 0 OR runidvar is NULL THEN
+        LEAVE get_suit;
+    END IF;
+
+    select runuuidvar;
+    select runidvar;
+
+    /*
+    Select  RunName,
+      (CASE
+      when FAIL>0 Then 'FAIL'
+        when `ERROR`>0 then 'ERROR'
+        when TOTAL=SKIP then 'SKIP'
+        when TOTAL=PASS then 'PASS'
+      END) as RunStatus,
+        RunStartDate, RunFinishDate,RunDuration,EnvName,TeamName,FAIL,`ERROR`,SKIP,PASS,
+        round(( FAIL*100/TOTAL),2) as `FAIL%`,
+        round(( `ERROR`*100/TOTAL),2) as `ERROR%`,
+        round(( SKIP*100/TOTAL),2) as `SKIP%`,
+        round(( PASS*100/TOTAL),2) as `PASS%`,
+        TOTAL
+      from (select COUNT(*) AS TOTAL,
+        SUM(`re_result_name` = 'PASS')AS PASS,
+        SUM(`re_result_name` = 'SKIP')AS SKIP,
+        SUM(`re_result_name` = 'FAIL') AS FAIL,
+        SUM(`re_result_name` = 'ERROR')AS `ERROR`, r_run_name as RunName,r_run_uid as RunUUID,r_run_start_date as RunStartDate,r_run_finish_date as RunFinishDate,r_run_duration as RunDuration,e_env_name as EnvName,tm_team_name as TeamName
+    from `reporter`.`run`,`reporter`.`environment`,`reporter`.`team`,`reporter`.`suite`,`reporter`.`test`,`reporter`.`run_suite`,`reporter`.`suite_test`,`reporter`.`result`
+    where run.id=runidvar AND run.environment_id=environment.id AND run.team_id=team.id AND (`reporter`.`run`.`id`=`reporter`.`run_suite`.`run_id`
+            AND `reporter`.`run_suite`.`suite_id`=`reporter`.`suite`.`id` AND `reporter`.`suite_test`.`suite_id`=`reporter`.`suite`.`id`
+                    AND `reporter`.`suite_test`.`test_id`=`reporter`.`test`.`id` AND `reporter`.`test`.`result_id`=`reporter`.`result`.`id`) ) as RunResult;
+                    */
+
+    call get_run_details(runidvar);
+
+
+    /* SELECT COUNT(*) AS TOTAL,
+        SUM(`re_result_name` = 'PASS')AS PASS,
+        SUM(`re_result_name` = 'SKIP')AS SKIP,
+        SUM(`re_result_name` = 'FAIL') AS FAIL,
+        SUM(`re_result_name` = 'ERROR')AS `ERROR`,`suite`.`id` as SuiteID, s_suite_name as SuiteName,s_suite_start_date as SuiteStartDate,s_suite_finish_date as SuiteFinishDate,s_suite_run_duration as SuiteDuration
+    from `reporter`.`run`,`reporter`.`suite`,`reporter`.`run_suite`
+    where `reporter`.`run`.`id`=runidvar AND (`reporter`.`run`.`id`=`reporter`.`run_suite`.`run_id`
+    AND `reporter`.`run_suite`.`suite_id`=`reporter`.`suite`.`id`)  group by SuiteID;
+    */
+    /*
+    SELECT A.SuiteTable_SuiteID,SuiteTable_SuiteName,
+     (CASE
+      when SuiteTable_FAIL>0 Then 'FAIL'
+        when `SuiteTable_ERROR`>0 then 'ERROR'
+        when SuiteTable_TOTAL=SuiteTable_SKIP then 'SKIP'
+        when SuiteTable_TOTAL=SuiteTable_PASS then 'PASS'
+      END) as SuiteTable_SuiteStatus,
+     SuiteTable_SuiteStartDate, SuiteTable_SuiteFinishDate, SuiteTable_SuiteDuration,SuiteTable_TOTAL,SuiteTable_PASS,SuiteTable_FAIL,`SuiteTable_ERROR`,SuiteTable_SKIP, TestID, TestName,TestRailID,XrayID,TestStartDate,TestFinishDate,TestDuration,TestResult
+    FROM (
+    SELECT COUNT(*) AS SuiteTable_TOTAL,
+        SUM(`re_result_name` = 'PASS')AS SuiteTable_PASS,
+        SUM(`re_result_name` = 'SKIP')AS SuiteTable_SKIP,
+        SUM(`re_result_name` = 'FAIL') AS SuiteTable_FAIL,
+        SUM(`re_result_name` = 'ERROR')AS `SuiteTable_ERROR`,
+        `suite`.`id` as SuiteTable_SuiteID, s_suite_name as SuiteTable_SuiteName,s_suite_start_date as SuiteTable_SuiteStartDate,s_suite_finish_date as SuiteTable_SuiteFinishDate,s_suite_run_duration as SuiteTable_SuiteDuration
+      from `reporter`.`run`,`reporter`.`suite`,`reporter`.`test`,`reporter`.`run_suite`,`reporter`.`suite_test`,`reporter`.`result`
+      where `reporter`.`run`.`id`=runidvar AND (`reporter`.`run`.`id`=`reporter`.`run_suite`.`run_id`
+            AND `reporter`.`run_suite`.`suite_id`=`reporter`.`suite`.`id` AND `reporter`.`suite_test`.`suite_id`=`reporter`.`suite`.`id`
+                    AND `reporter`.`suite_test`.`test_id`=`reporter`.`test`.`id` AND `reporter`.`test`.`result_id`=`reporter`.`result`.`id`)
+                    group by SuiteTable_SuiteID order by SuiteTable_SuiteID) as A
+    JOIN (
+    SELECT `suite`.`id` as SuiteTable_SuiteID, `test`.`id` as TestID, t_test_name as TestName,t_testrail_id as TestRailID,t_xray_id as XrayID,t_test_start_date as TestStartDate,t_test_finish_date as TestFinishDate,t_test_run_duration as TestDuration, re_result_name as TestResult
+      from `reporter`.`run`,`reporter`.`suite`,`reporter`.`test`,`reporter`.`run_suite`,`reporter`.`suite_test`,`reporter`.`result`
+      where `reporter`.`run`.`id`=runidvar AND (`reporter`.`run`.`id`=`reporter`.`run_suite`.`run_id`
+            AND `reporter`.`run_suite`.`suite_id`=`reporter`.`suite`.`id` AND `reporter`.`suite_test`.`suite_id`=`reporter`.`suite`.`id`
+                    AND `reporter`.`suite_test`.`test_id`=`reporter`.`test`.`id` AND `reporter`.`test`.`result_id`=`reporter`.`result`.`id`)
+                    order by `suite`.`id`,`test`.`id`) as B
+    ON A.SuiteTable_SuiteID=B.SuiteTable_SuiteID;*/
+
+
+    SELECT A.SuiteTable_SuiteID,
+           SuiteTable_SuiteName,
+           (CASE
+                when SuiteTable_FAIL > 0 Then 'FAIL'
+                when `SuiteTable_ERROR` > 0 then 'ERROR'
+                when SuiteTable_TOTAL = SuiteTable_SKIP then 'SKIP'
+                when SuiteTable_TOTAL = SuiteTable_PASS then 'PASS'
+                when SuiteTable_TOTAL = (SuiteTable_PASS + SuiteTable_SKIP) then 'PASS'
+               END) as SuiteTable_SuiteStatus,
+           SuiteTable_SuiteStartDate,
+           SuiteTable_SuiteFinishDate,
+           SuiteTable_SuiteDuration,
+           SuiteTable_FAIL,
+           `SuiteTable_ERROR`,
+           SuiteTable_SKIP,
+           SuiteTable_PASS,
+           SuiteTable_TOTAL
+    FROM (
+             SELECT COUNT(*)                                                   AS SuiteTable_TOTAL,
+                    SUM(`re_result_name` = 'PASS')                             AS SuiteTable_PASS,
+                    SUM(`re_result_name` = 'SKIP')                             AS SuiteTable_SKIP,
+                    SUM(`re_result_name` = 'FAIL')                             AS SuiteTable_FAIL,
+                    SUM(`re_result_name` = 'ERROR')                            AS `SuiteTable_ERROR`,
+                    `suite`.`id`                                               as SuiteTable_SuiteID,
+                    s_suite_name                                               as SuiteTable_SuiteName,
+                    s_suite_start_date                                         as SuiteTable_SuiteStartDate,
+                    s_suite_finish_date                                        as SuiteTable_SuiteFinishDate,
+                    TIME_FORMAT(SEC_TO_TIME(s_suite_run_duration), "%H:%i:%s") as SuiteTable_SuiteDuration
+             from `reporter`.`run`,
+                  `reporter`.`suite`,
+                  `reporter`.`test`,
+                  `reporter`.`result`
+             where `reporter`.`run`.`id` = runidvar
+               AND (reporter.suite.s_run_id=reporter.run.`id` AND
+                    `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
+                    `reporter`.`test`.`result_id` = `reporter`.`result`.`id`)
+             group by SuiteTable_SuiteID
+             order by SuiteTable_SuiteID) as A;
+
+    -- t_test_start_date as TestTable_TestStartDate,t_test_finish_date as TestTable_TestFinishDate,
+    SELECT `suite`.`id`                                                     as TestTable_SuiteID,
+           `test`.`id`                                                      as TestTable_TestID,
+           t_test_video	as TestTable_TestVideo,
+           t_test_name                                                      as TestTable_TestName,
+           `test`.`t_test_uid`                                              as TestTable_TestUUID,
+           t_testrail_id                                                    as TestTable_TestRailID,
+           t_xray_id                                                    as TestTable_XrayID,
+           t_jira_id                                                    as TestTable_JiraID,
+           TIME_FORMAT(SEC_TO_TIME(t_test_run_duration / 1000), "%H:%i:%s") as TestTable_TestDuration,
+           re_result_name                                                   as TestTable_TestResult,
+           `author`.`a_author_name` AS TestTable_Author,
+           t_defect as TestTable_Defect
+    from `reporter`.`run`,
+         `reporter`.`suite`,
+         `reporter`.`test`,
+         `reporter`.`result`,
+         `reporter`.`author`
+    where `reporter`.`run`.`id` = runidvar
+      AND (reporter.suite.s_run_id=reporter.run.`id` AND
+           `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
+           `reporter`.`test`.`result_id` = `reporter`.`result`.`id` AND `reporter`.`test`.`test_author_id`=`reporter`.`author`.`id`)
+    order by `suite`.`id`, `test`.`id`;
+
+
+    /* begin
+    DECLARE done INT DEFAULT FALSE;
+    Declare SuiteIDvar, SuiteDurationvar INT;
+    Declare SuiteNamevar VARCHAR(255);
+    Declare SuiteStartDatevar,SuiteFinishDatevar DATETIME;
+    DEClARE cursorsuits CURSOR FOR
+    select r_run_name AS RunName,r_run_start_date AS StartDate,r_run_finish_date AS FinishDate,r_run_duration AS RunDuration,e_env_name AS EnvName,tm_team_name AS TeamName
+    from `reporter`.`run`,`reporter`.`environment`,`reporter`.`team`
+    where run.id=runidvar AND run.environment_id=environment.id AND run.team_id=team.id;
+    declare continue handler for not found set done = true;
+
+    OPEN cursorsuits;
+
+    suits_loop : LOOP
+        FETCH cursorsuits INTO SuiteIDvar, SuiteNamevar,SuiteStartDatevar,SuiteFinishDatevar,SuiteDurationvar;
+        IF done THEN
+          LEAVE suits_loop;
+        END IF;
+        SELECT * from `reporter`.`suite`,`reporter`.`test`,`reporter`.`run_suite`,`reporter`.`suite_test`,`reporter`.`result` where
+            suite.id=SuiteIDvar
+            AND (`reporter`.`suite_test`.`suite_id`=`reporter`.`suite`.`id`
+                    AND `reporter`.`suite_test`.`test_id`=`reporter`.`test`.`id` AND `reporter`.`test`.`result_id`=`reporter`.`result`.`id`);
+        select SuiteIDvar;
+        select SuiteNamevar;
+        select SuiteStartDatevar;
+        select SuiteFinishDatevar;
+        select SuiteDurationvar;
+    END LOOP;
+
+    CLOSE cursorsuits;
+    end;
+    */
+
+
+    -- SELECT Id, dateCreated
+    -- INTO iId, dCreate
+    -- FROM products
+    -- WHERE pName = iName
+
+END
+END$$
+
+
 DROP PROCEDURE IF EXISTS `get_test_details`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_test_details` (IN `TESTID` INT)  get_test_details :
 BEGIN
@@ -1287,6 +1789,7 @@ CREATE TABLE IF NOT EXISTS `test` (
   `t_test_uid` varchar(255) NOT NULL,
   `t_test_name` varchar(255) NOT NULL,
   `t_testrail_id` varchar(255) DEFAULT NULL,
+  `t_xray_id` varchar(255) DEFAULT NULL,
   `t_defect` varchar(255) DEFAULT NULL,
   `t_test_start_date` datetime NOT NULL,
   `t_test_finish_date` datetime NOT NULL,

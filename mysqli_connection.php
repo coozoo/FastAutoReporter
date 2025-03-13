@@ -1,10 +1,10 @@
 <?php
     function OpenCon()
     {
-	$dbhost = "DBHOST";
-	$dbuser = "DBUSER";
-	$dbpass = "DBPASSWORD";
-	$db = "DBNAME";
+    $dbhost = "vins207";
+    $dbuser = "admin";
+    $dbpass = "admin";
+    $db = "reporter";
 	$mysqli = new mysqli($dbhost, $dbuser, $dbpass,$db);
 	
 	if($mysqli->connect_errno)

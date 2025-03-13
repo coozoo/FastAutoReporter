@@ -113,11 +113,11 @@ $suitetabledata=array();
 
     if($featureview=="false")
     {
-	$getsuitquery="call get_suit($runid,$runuid)";
+	$getsuitquery="call get_suit_v2($runid,$runuid)";
     }
     else
     {
-	$getsuitquery="call get_feature($runid,$runuid)";
+	$getsuitquery="call get_feature_v2($runid,$runuid)";
     }
     //echo $getsuitquery;
     if (!$mysqli->multi_query($getsuitquery)) {
@@ -404,6 +404,8 @@ foreach($suitekeys as $suitekey) {
     $TestVideoColID=-1;
     $TestNameColID=-1;
     $TestRailIDColID=-1;
+    $TestXrayIDColID=-1;
+    $TestJiraIDColID=-1;
     $TestUUIDColID=-1;
     $TestDefectColID=-1;
     $DefectInvertedCounter=0;
@@ -436,7 +438,19 @@ foreach($suitekeys as $suitekey) {
 	$resulttesttablename.="<table id=\"testtable_$suitekey\" class=\"$testtablecolor"."Inner"."\">";
 	$resulttesttableheader.="<thead id=\"testheader_$testkey\"><tr>";
 	foreach($testcolumnnames as $testcolumnname) {
-	    if($testcolumnname!="TestUUID" && $testcolumnname!="Defect"  && $testcolumnname!="TestVideo")
+	    if($testcolumnname!="TestUUID" && $testcolumnname!="Defect"  && $testcolumnname!="TestVideo"  && $testcolumnname!="TestRailID"  && $testcolumnname!="XrayID"  && $testcolumnname!="JiraID")
+	    {
+		$resulttesttableheader.="<th>$testcolumnname</th>";
+	    }
+	    else if($testcolumnname=="TestRailID" && $testrailEnabled)
+	    {
+		$resulttesttableheader.="<th>$testcolumnname</th>";
+	    }
+	    else if($testcolumnname=="XrayID" && $xrayEnabled)
+	    {
+		$resulttesttableheader.="<th>$testcolumnname</th>";
+	    }
+	    else if($testcolumnname=="JiraID" && $jiraEnabled)
 	    {
 		$resulttesttableheader.="<th>$testcolumnname</th>";
 	    }
@@ -462,6 +476,12 @@ foreach($suitekeys as $suitekey) {
 		break;
 		case "TestRailID":
 		    $TestRailIDColID=$testthcnt;
+		break;
+		case "XrayID":
+		    $TestXrayIDColID=$testthcnt;
+		break;
+		case "JiraID":
+		    $TestJiraIDColID=$testthcnt;
 		break;
 		case "TestVideo":
 		    $TestVideoColID=$testthcnt;
@@ -507,7 +527,7 @@ foreach($suitekeys as $suitekey) {
 									    "$tempvideovalue".
 									    "</a>&nbsp;$testcolumnvalue&nbsp;</td>";
 		}
-		elseif($TestRailIDColID==$testtdcnt)
+		elseif($TestRailIDColID==$testtdcnt && $testrailEnabled)
 		{
 			$columnsresulttesttablevalues.="<td value=\"$testcolumnvalue\"><a href=\"gettestrailcase.php?caseid=$testcolumnvalue\" onclick=\"event.stopPropagation();
 										window.open('gettestrailcase.php?caseid=$testcolumnvalue','newwindow','status=no,location=no,toolbar=no,menubar=no,resizable=yes,scrollbars=yes,width=1024,height=500,top='+this.getBoundingClientRect().top+',left='+this.getBoundingClientRect().left).focus();return false;\"
@@ -515,11 +535,21 @@ foreach($suitekeys as $suitekey) {
 		//	$columnsresulttesttablevalues.="<td value=\"$testcolumnvalue\"><font id=\"font_$testcolumnvalue\" style=\"font-weight:bold;text-decoration: underline;\" onclick=\"event.stopPropagation();
 		//								return gettestrailcase(this,this.getBoundingClientRect().top);\">$testcolumnvalue</font></td>";
 		}
+		elseif($TestXrayIDColID==$testtdcnt && $xrayEnabled)
+		{
+			$columnsresulttesttablevalues.="<td value=\"$testcolumnvalue\"><a href=\"getxraycase.php?caseid=$testcolumnvalue\" onclick=\"event.stopPropagation();
+										window.open('getxraycase.php?caseid=$testcolumnvalue','newwindow','status=no,location=no,toolbar=no,menubar=no,resizable=yes,scrollbars=yes,width=1024,height=500,top='+this.getBoundingClientRect().top+',left='+this.getBoundingClientRect().left).focus();return false;\"
+										 target=\"_blank\">$testcolumnvalue</a></td>";
+		}
+		elseif($TestJiraIDColID==$testtdcnt && $jiraEnabled)
+		{
+		    $columnsresulttesttablevalues.="<td value=\"$testcolumnvalue\">$testcolumnvalue</td>";
+		}
 		elseif($TestDefectColID==$testtdcnt && $ShowDefectColumn)
 		{
 		    $columnsresulttesttablevalues.="<td value=\"$testcolumnvalue\">$testcolumnvalue</td>";
 		}
-		elseif($TestDefectColID!=$testtdcnt)
+		elseif($TestDefectColID!=$testtdcnt && $TestRailIDColID!=$testtdcnt && $TestXrayIDColID!=$testtdcnt && $TestJiraIDColID!=$testtdcnt)
 		{
 		    $columnsresulttesttablevalues.="<td value=\"$testcolumnvalue\">$testcolumnvalue</td>";
 		}
@@ -1140,6 +1170,29 @@ function gettestrailcase(el,toppos)
     message.innerHTML = '<iframe id=\"framecase_'+elid+ '\" src=\"gettestrailcase.php?caseid='+ elid+ '&_=' + new Date().getTime()+'\" onload=\"this.style.height=this.contentWindow.document.body.scrollHeight+40 +\'px\';\"  style=\"width:100%\"></iframe>';
 //    var iframe = document.getElementById('framecase_'+elid);
 //    iframe.src = 'gettestrailcase.php?caseid='+ elid+'&_=' + new Date().getTime();
+    popup.appendChild(message);
+    popup.appendChild(cancel);
+    
+    document.body.appendChild(popup);
+}
+
+
+function getxraycase(el,toppos)
+{
+    console.log(el.innerHTML);
+    var elid=el.innerHTML;
+    var popup = document.createElement('div');
+    popup.className = 'popup';
+    popup.style.top=toppos+'px';
+    popup.id = elid;
+    var cancel = document.createElement('div');
+    cancel.className = 'cancel';
+    cancel.innerHTML = 'Close';
+    cancel.onclick = function (e) { popup.parentNode.removeChild(popup) };
+    var message = document.createElement('span');
+    message.innerHTML = '<iframe id=\"framecase_'+elid+ '\" src=\"getxraycase.php?caseid='+ elid+ '&_=' + new Date().getTime()+'\" onload=\"this.style.height=this.contentWindow.document.body.scrollHeight+40 +\'px\';\"  style=\"width:100%\"></iframe>';
+//    var iframe = document.getElementById('framecase_'+elid);
+//    iframe.src = 'getxraycase.php?caseid='+ elid+'&_=' + new Date().getTime();
     popup.appendChild(message);
     popup.appendChild(cancel);
     
