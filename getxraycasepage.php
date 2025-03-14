@@ -365,7 +365,7 @@ $cssTableStyleFile="csstablestyle.css";
 $cssTableStyle=file_get_contents($cssTableStyleFile);
 
 echo "<!DOCTYPE html><html>
-<head><title>$issue_key - $issue_summary</title>";
+<head><title>$issue_key - $issue_summary</title>   <link rel='shortcut icon' type='image/png' href=\"$iconfile\" />";
 echo "<link rel='stylesheet' type='text/css' href='$cssTableStyleFile' />";
 echo "      <style>
          pre {
