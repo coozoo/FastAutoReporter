@@ -1,13 +1,21 @@
 <?php
-// loader.php
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
 
+$myreporter = basename(dirname(__FILE__));
+if (basename($_SERVER['DOCUMENT_ROOT']) == $myreporter) {
+    $myreporter = "";
+}
+include($_SERVER['DOCUMENT_ROOT'] . "/$myreporter/initvar.php");
+
+
+echo("
+<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>Loading...</title>
+    <link rel='shortcut icon' type='image/png' href=\"$iconfile\" />");
+?>
     <style>
         /* Fullscreen overlay */
         #overlay {
@@ -61,3 +69,4 @@
     </div>
 </body>
 </html>
+
