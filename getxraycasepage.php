@@ -58,29 +58,50 @@ function parse_adf($content) {
         if (!is_array($block) || !isset($block['type'])) {
             continue;
         }
+
         if ($block['type'] == 'orderedList' && isset($block['content'])) {
             $html .= "<ol>";
             foreach ($block['content'] as $listItem) {
-                $html .= "<li>" . parse_adf($listItem['content']) . "</li>";
+                if (isset($listItem['content']) && is_array($listItem['content'])) {
+                    $html .= "<li>" . parse_adf($listItem['content']) . "</li>";
+                }
             }
             $html .= "</ol>";
         } elseif ($block['type'] == 'paragraph' && isset($block['content'])) {
             $paragraphContent = "";
             foreach ($block['content'] as $inline) {
-                if (isset($inline['marks'][0]['type']) && $inline['marks'][0]['type'] == 'strong') {
-                    $paragraphContent .= "<strong>" . htmlspecialchars($inline['text']) . "</strong> ";
-                } elseif ($inline['type'] == 'hardBreak') {
+                $text = isset($inline['text']) ? htmlspecialchars($inline['text']) : '';
+                $text = str_replace("\n", "<br>", $text); // Preserve line breaks
+
+                if (isset($inline['marks'])) {
+                    foreach ($inline['marks'] as $mark) {
+                        if ($mark['type'] == 'strong') {
+                            $text = "<strong>" . $text . "</strong>";
+                        }
+                    }
+                }
+                if ($inline['type'] == 'hardBreak') {
                     $paragraphContent .= "<br>";
                 } else {
-                    $paragraphContent .= isset($inline['text']) ? htmlspecialchars($inline['text']) : '';
+                    $paragraphContent .= $text;
                 }
             }
             $html .= "<p>" . $paragraphContent . "</p>";
-        } elseif ($block['type'] == 'mediaSingle' && isset($block['content'][0]['attrs']['alt'])) {
+        } elseif ($block['type'] == 'heading' && isset($block['attrs']['level']) && isset($block['content'])) {
+            $level = $block['attrs']['level'];
+            $headingContent = "";
+            foreach ($block['content'] as $inline) {
+                $headingContent .= isset($inline['text']) ? htmlspecialchars($inline['text']) : '';
+            }
+            $html .= "<h{$level}>{$headingContent}</h{$level}>";
+        } elseif ($block['type'] == 'mediaSingle' && isset($block['content'][0]['attrs'])) {
             $media = $block['content'][0]['attrs'];
-            $image_data = fetch_jira_image($media['alt']);
-            if ($image_data) {
-                $html .= '<img src="' . $image_data . '" style="max-width:100%;"><br>';
+            $image_id = isset($media['alt']) ? $media['alt'] : (isset($media['id']) ? $media['id'] : null);
+            if ($image_id) {
+                $image_data = fetch_jira_image($image_id);
+                if ($image_data) {
+                    $html .= '<img src="' . htmlspecialchars($image_data) . '" style="max-width:100%;"><br>';
+                }
             }
         } elseif (isset($block['content']) && is_array($block['content'])) {
             $html .= parse_adf($block['content']);
@@ -88,6 +109,7 @@ function parse_adf($content) {
     }
     return $html;
 }
+
 
 function fetch_jira_image($filename) {
     global $jirauser, $jiratoken, $attachment_map;
