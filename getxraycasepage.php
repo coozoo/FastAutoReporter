@@ -74,12 +74,16 @@ function parse_adf($content) {
                 $text = str_replace("\n", "<br>", $text); // Preserve line breaks
 
                 if (isset($inline['marks'])) {
-                    foreach ($inline['marks'] as $mark) {
+                     foreach (array_reverse($inline['marks']) as $mark) {
                         if ($mark['type'] == 'strong') {
-                            $text = "<strong>" . $text . "</strong>";
-                        }
+                          $text = "<strong>$text</strong>";
+                        } elseif ($mark['type'] == 'link' && isset($mark['attrs']['href'])) {
+                       $href = htmlspecialchars($mark['attrs']['href']);
+                        $text = "<a href=\"$href\" target=\"_blank\">$text</a>";
+                       }
                     }
                 }
+
                 if ($inline['type'] == 'hardBreak') {
                     $paragraphContent .= "<br>";
                 } else {
