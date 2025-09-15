@@ -82,12 +82,20 @@ else
 	    if(strpos("$blobtype",'text/html') !== false)
 	    {
 		header("Content-type: image/svg+xml");
+		header("X-Blob-Role: ico");
 		echo(file_get_contents("img/icons/mime/Crystal-Clear-mime-text-html.svg"));
+	    }
+		elseif(strpos("$blobtype",'json') !== false)
+	    {
+		header("Content-type: image/svg+xml");
+		header("X-Blob-Role: ico");
+		echo(file_get_contents("img/icons/mime/JSON_vector_logo20x20.svg"));
 	    }
 	    elseif(strpos("$blobtype",'text') !== false)
 	    {
 		header("Content-type: image/png");
-		echo(file_get_contents("img/icons/mime/Gnome-mime-text.png"));
+		header("X-Blob-Role: ico");
+		echo(file_get_contents("img/icons/mime/Gnome-mime-text.20x20.png"));
 	    }
 	}
 	else
