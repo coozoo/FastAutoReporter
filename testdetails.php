@@ -79,7 +79,7 @@ $logtablefirstcolname="logid";
                     	elseif($val->name=="meta" && $resultmetacount>0 && $rows[$val->name]!=null)
                     	{
                     	    //$logtablebody.="<td><a href=\"getblob.php?logid=$logid\" target=\"_blank\">Open Image</a></td>";
-                    	    $logtablebody.="<td style=\"width:1%;text-align:center;\"><a href=\"getblob.php?logid=$logid\" target=\"_blank\"><img src=\"getblob.php?logid=$logid&preview=true\" title=\"Open Image\" alt=\"Open Image\"></a></td>";
+                    	    $logtablebody.="<td style=\"width:1%;text-align:center;\"><a href=\"getblob.php?logid=$logid\" target=\"_blank\"><img src=\"getblob.php?logid=$logid&preview=true\" title=\"Open Media\" alt=\"Open Media\"></a></td>";
 			    //$logtablebody.="<td><a href=\"getblob.php?logid=$logid\" target=\"_blank\"><img src=\"getblob.php?logid=$logid\" style=\"width:500px; height:20px\" title=\"Open Image\" alt=\"Open Image\"></a></td>";
 									
                     	}
