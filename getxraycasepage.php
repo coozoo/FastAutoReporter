@@ -134,6 +134,35 @@ function fetch_jira_image($filename) {
     return "data:image/png;base64," . base64_encode($image_data);
 }
 
+
+function authenticate_xray() {
+    global $xrayhost, $xrayclientid, $xrayclientsecret;
+
+    $url = "$xrayhost/api/v2/authenticate";
+    $payload = json_encode([
+        "client_id" => $xrayclientid,
+        "client_secret" => $xrayclientsecret
+    ]);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code !== 200) {
+        die("Error authenticating with Xray API. HTTP Code: $http_code");
+    }
+
+    // The API returns the token surrounded by quotes, we trim them off
+    return trim($response, '"'); 
+}
+
 function get_xray_jwt($project_id) {
     global $xraypluginpath, $jirahost, $jirauser, $jiratoken, $projectkey;
 
@@ -180,7 +209,14 @@ function get_xray_jwt($project_id) {
 
 
 function confluenceTablesToHtml($text) {
-    return preg_replace_callback('/\|\|(.+?)\|\|\n((?:\|.+?\|(?:\n|$))+)/s', function ($matches) {
+	    // Preprocess if |||: exists
+     if (strpos($text, '|||:') !== false) {
+        $text = preg_replace_callback('/^\|\|\|:(.+)/m', function ($match) {
+            return '||' . str_replace(['||', '|:'], ['|', '|'], $match[1]);
+        }, $text);
+    }
+   return preg_replace_callback('/\|\|(.+?)\|\|\n((?:\|.+?\|(?:\n|$))+)/s', function ($matches) {
+
         // Extract headers
         $headers = explode('||', trim($matches[1]));
         $headersHtml = '<tr><th>' . implode('</th><th>', array_map('trim', $headers)) . '</th></tr>';
@@ -293,7 +329,51 @@ function get_project_id() {
     return null;
 }
 
-function get_xray_teststeps( $x_acpt,$test_id) {
+
+function get_xray_teststeps($xray_token, $issue_numid) {
+    global $xrayhost;
+
+    $url = "$xrayhost/api/v2/graphql";
+    
+    // GraphQL query to fetch the manual test steps
+    $query = 'query { getTest(issueId: "' . $issue_numid . '") { steps { id action data result } } }';
+    $payload = json_encode(["query" => $query]);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "Content-Type: application/json",
+        "Authorization: Bearer " . $xray_token
+    ]);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    $graphql_data = json_decode($response, true);
+    
+    // FORMAT TRICK: Map the new GraphQL response to exactly match the 
+    // old undocumented API format so your existing HTML table handler works!
+    $old_format = ['steps' => []];
+    
+    if (isset($graphql_data['data']['getTest']['steps'])) {
+        $index = 1;
+        foreach ($graphql_data['data']['getTest']['steps'] as $step) {
+            $old_format['steps'][] = [
+                'index' => $index++,
+                'action' => isset($step['action']) ? $step['action'] : '',
+                'data' => isset($step['data']) ? $step['data'] : '',
+                'result' => isset($step['result']) ? $step['result'] : ''
+            ];
+        }
+    }
+    
+    return $old_format;
+}
+
+function get_xray_teststeps_old( $x_acpt,$test_id) {
     global $xrayhost;
 
     $url = "$xrayhost/api/internal/test/$test_id/steps?startAt=0&maxResults=50";
@@ -380,7 +460,7 @@ $issue_link = "$jirahost/browse/$issue_key";
 $issue_numid=$issue['id'];
 $projectid=get_project_id();
 //echo($projectid);
-$xray_jwt=get_xray_jwt($projectid);
+$xray_jwt = authenticate_xray();
 
 //echo($xray_jwt);
 sleep(0.1);
@@ -402,67 +482,7 @@ echo "      <style>
             white-space: -o-pre-wrap;
             word-wrap: break-word;
          }
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            visibility: visible; /* Ensure it's visible immediately */
-            opacity: 1;
-            transition: opacity 0.3s ease-in-out; /* Smooth fade out */
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #ccc;
-            border-top: 5px solid #000;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-      </style>
-
-<script>
-
-        document.addEventListener(\"DOMContentLoaded\", function () {
-            spinner_off(); // Hide as soon as DOM is loaded
-        });
-
-        setTimeout(spinner_off, 3000);
-function spinner_on() {
-  document.getElementById(\"overlay\").style.display = \"block\";
-  document.getElementsByClassName('spinner')[0].style.display = \"block\";
-}
-
-function spinner_off() {
-    var overlay=document.getElementById(\"overlay\");
-    if (overlay !== null)
-    {
-	overlay.style.display = \"none\";
-    }
-    var spinner=document.getElementsByClassName('spinner')[0];
-    if (spinner !== null)
-    {
-	spinner.style.display = \"none\";
-    }
-}</script>
-
-</head><body>  <div id=\"overlay\">
-  <!--<img src=\"img/anim/spinner.gif\" alt=\"progress\" class=\"image\">-->
-</div>
-<div class=\"spinner\"></div>";
+      </style></head><body>";
 echo "<div>";
 echo "<h2><a href='$issue_link' target='_blank'>$issue_key</a> - $issue_summary</h2>";
 echo "<div>$descriptionHtml</div>";

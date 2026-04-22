@@ -5,7 +5,7 @@
 
 ///////////// testrail settings /////////////
 //enable testrail columns
-$testrailEnabled=true;
+$testrailEnabled=false;
 //user and password/token
 $testrailhost='https://testrail.com/';
 $testrailuser='TESTRAILUSER';
@@ -27,10 +27,7 @@ $xrayhost='https://eu.xray.cloud.getxray.app';
 //project key can be found in project settigns
 $projectkey='PROJECTKEY';
 //it is path to xray plugin in jira
-$xraypluginpath = '/plugins/servlet/ac/com.xpandit.plugins.xray/testing-board';
-//these keys for non working xray api they're not used
-//$xrayuser='XRAYUSER';
-//$xraykey='XRAYKEY';
-//$xraytoken='XRAYTOKEN';
+$xrayclientid='XRAYCLIENTID';
+$xrayclientsecret='XRAYCLIENTSECRET';
 /////////////////////////////////////////////
 ?>
