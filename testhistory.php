@@ -315,8 +315,8 @@ var envselection = document.getElementById('envselection');
 //window.onload 
 envselection.onchange = function(){
     console.log(envselection.value);
-    console.log('".(($startdate_param!="NULL")?$startdate_param:"'NULL'")."');
-    console.log('".(($starttime!="NULL")?$starttime:"'NULL'")."');
+    console.log(\"".(($startdate_param!="NULL")?$startdate_param:"'NULL'")."\");
+    console.log(\"".(($starttime!="NULL")?$starttime:"'NULL'")."\");
     console.log(\"".(($enddate_param!="NULL")?$enddate_param:"'NULL'")."\");
     console.log(\"".(($endtime!="NULL")?$endtime:"'NULL'")."\");
     reloadwindow(envselection.value,\"".(($startdate_param!="NULL")?$startdate_param:"NULL")."\",\"".(($starttime!="NULL")?$starttime:"NULL")."\",\"".(($enddate_param!="NULL")?$enddate_param:"NULL")."\",\"".(($endtime!="NULL")?$endtime:"NULL")."\");

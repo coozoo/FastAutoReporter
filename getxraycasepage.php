@@ -13,6 +13,7 @@ $url = "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 $query_str = parse_url($url, PHP_URL_QUERY);
 $parts = parse_url($url);
 $caseid = "NULL";
+$output_format = "html";
 
 if (isset($parts['query'])) {
     parse_str($parts['query'], $query);
@@ -21,6 +22,9 @@ if (isset($query['caseid'])) {
     $caseid = $query['caseid'];
 } else {
     exit;
+}
+if (isset($query['output'])) {
+    $output_format = $query['output'];
 }
 
 $headers = array(
@@ -37,6 +41,10 @@ curl_close($ch);
 
 $issue = json_decode($response, true);
 if (!$issue || isset($issue['errorMessages'])) {
+    if ($output_format === 'json') {
+        header('Content-Type: application/json');
+        echo json_encode(["error" => "Issue not found"]);
+    }
     exit;
 }
 
@@ -67,6 +75,27 @@ function parse_adf($content) {
                 }
             }
             $html .= "</ol>";
+        } elseif ($block['type'] == 'bulletList' && isset($block['content'])) {
+            $html .= "<ul>";
+            foreach ($block['content'] as $listItem) {
+                if (isset($listItem['content']) && is_array($listItem['content'])) {
+                    $html .= "<li>" . parse_adf($listItem['content']) . "</li>";
+                }
+            }
+            $html .= "</ul>";
+        } elseif ($block['type'] == 'codeBlock' && isset($block['content'])) {
+            $language = isset($block['attrs']['language']) ? htmlspecialchars($block['attrs']['language']) : '';
+            $codeContent = "";
+            foreach ($block['content'] as $inline) {
+                if (isset($inline['type']) && $inline['type'] == 'text' && isset($inline['text'])) {
+                    $codeContent .= htmlspecialchars($inline['text']);
+                }
+            }
+            $html .= '<pre style="background: #f4f4f4; border: 1px solid #ccc; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;" class="language-' . $language . '">' . $codeContent . '</pre>';
+        } elseif ($block['type'] == 'blockquote' && isset($block['content'])) {
+            $html .= '<blockquote style="border-left: 4px solid #ccc; padding: 10px; margin: 10px 0; background: #f9f9f9;">' . parse_adf($block['content']) . '</blockquote>';
+        } elseif ($block['type'] == 'rule') {
+            $html .= "<hr>";
         } elseif ($block['type'] == 'paragraph' && isset($block['content'])) {
             $paragraphContent = "";
             foreach ($block['content'] as $inline) {
@@ -74,13 +103,15 @@ function parse_adf($content) {
                 $text = str_replace("\n", "<br>", $text); // Preserve line breaks
 
                 if (isset($inline['marks'])) {
-                     foreach (array_reverse($inline['marks']) as $mark) {
+                    foreach (array_reverse($inline['marks']) as $mark) {
                         if ($mark['type'] == 'strong') {
-                          $text = "<strong>$text</strong>";
+                            $text = "<strong>$text</strong>";
+                        } elseif ($mark['type'] == 'code') {
+                            $text = "<code>$text</code>";
                         } elseif ($mark['type'] == 'link' && isset($mark['attrs']['href'])) {
-                       $href = htmlspecialchars($mark['attrs']['href']);
-                        $text = "<a href=\"$href\" target=\"_blank\">$text</a>";
-                       }
+                            $href = htmlspecialchars($mark['attrs']['href']);
+                            $text = "<a href=\"$href\" target=\"_blank\">$text</a>";
+                        }
                     }
                 }
 
@@ -107,6 +138,9 @@ function parse_adf($content) {
                     $html .= '<img src="' . htmlspecialchars($image_data) . '" style="max-width:100%;"><br>';
                 }
             }
+        } elseif (isset($block['type']) && $block['type'] == 'text' && isset($block['text'])) {
+            // Fallback for raw text nodes not wrapped in a paragraph
+            $html .= htmlspecialchars($block['text']);
         } elseif (isset($block['content']) && is_array($block['content'])) {
             $html .= parse_adf($block['content']);
         }
@@ -168,6 +202,13 @@ function get_xray_jwt($project_id) {
 
     $url = $jirahost . $xraypluginpath . "?classifier=json&project.id=" . urlencode($project_id) . "&project.key=" . urlencode($projectkey);
 
+    // Debugging logs
+//    error_log("Xray JWT Request URL: " . $url);
+//    error_log("Jira User: " . $jirauser);
+//    error_log("Project Key: " . $projectkey);
+//    error_log("xraypluginpath: " . $xraypluginpath);
+//    error_log("Project ID: " . $project_id);
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -179,18 +220,26 @@ function get_xray_jwt($project_id) {
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curl_error = curl_error($ch);
 
+    // Check for cURL errors
     if ($response === false) {
         error_log("Curl Error: " . $curl_error);
         die("Curl error: " . $curl_error);
     }
 
     curl_close($ch);
+
+    // Log HTTP response
+//    error_log("HTTP Response Code: " . $http_code);
+//    error_log("Raw Response: " . $response);
+
+    // Decode JSON response (PHP 5.6 safe)
     $json_response = json_decode($response, true);
     if ($json_response === null) {
         error_log("JSON Decode Error: " . json_last_error_msg());
         die("Error: Invalid JSON Response");
     }
 
+    // Check for API errors
     if ($http_code !== 200 || (isset($json_response['status']) && $json_response['status'] != 200)) {
         error_log("Xray API Error: " . print_r($json_response, true));
         die("Error: Xray API returned an error: " . (isset($json_response['message']) ? $json_response['message'] : "Unknown error"));
@@ -234,55 +283,65 @@ function confluenceTablesToHtml($text) {
 }
 
 
+#$text = "||Header1||Header2||Header3||\n|Row1Col1|Row1Col2|Row1Col3|\n|Row2Col1|Row2Col2|Row2Col3|";
+#$html = confluenceTablesToHtml($text);
+
+#echo $html;
+
+#require 'Parsedown.php';
+
+
 function convertAtlassianMarkupToHtml($text) {
-#echo($text);
-$emojiMap = [
-    '(x)' => '❌', // Red Cross Mark
-    '(/)' => '☑️', // Ballot Box with Check
-    '(+)' => '➕', // Plus
-    '(-)' => '➖', // Minus
-    '(on)' => '🔘', // Radio Button (On)
-    '(off)' => '⚪', // Radio Button (Off)
-    '(flag)' => '🚩', // Red Flag
-    '(flagoff)' => '🏳️', // White Flag (Flag Off)
-    '(!)' => '❗', // Exclamation Mark
-    '(?)' => '❓', // Question Mark
-    '(i)' => 'ℹ️', // Information
-    '(*y)' => '⭐', // Yellow Star
-    '(*b)' => '🔵', // Blue Circle
-    '(*g)' => '&#128994', // Green Circle
-    '(*r)' => '🔴'  // Red Circle
-];
+    $emojiMap = [
+        '(x)' => '❌', '(/)' => '☑️', '(+)' => '➕', '(-)' => '➖',
+        '(on)' => '🔘', '(off)' => '⚪', '(flag)' => '🚩', '(flagoff)' => '🏳️',
+        '(!)' => '❗', '(?)' => '❓', '(i)' => 'ℹ️', '(*y)' => '⭐',
+        '(*b)' => '🔵', '(*g)' => '&#128994', '(*r)' => '🔴'
+    ];
 
-$text = str_replace(array_keys($emojiMap), array_values($emojiMap), $text);
+    // Replace all emoji placeholders
+    $text = str_replace(array_keys($emojiMap), array_values($emojiMap), $text);
+    $text = confluenceTablesToHtml($text);
 
+    // Convert code block and noformat (supports {code:java}, {code:json}, etc.)
+    $text = preg_replace('/\{code(:[a-zA-Z0-9_\-]+)?\}(.*?)\{code\}/s', 
+        '<pre style="background: #f4f4f4; border: 1px solid #ccc; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">$2</pre>', 
+        $text);
 
- $text = confluenceTablesToHtml($text);
+    $text = preg_replace('/\{noformat\}(.*?)\{noformat\}/s', 
+        '<pre style="background: #f4f4f4; border: 1px solid #ccc; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">$1</pre>', 
+        $text);
+
+    // Convert bold, italic, underline
     $text = preg_replace('/\*(.*?)\*/', '<strong>$1</strong>', $text);
 
     $text = preg_replace('/_(.*?)_/', '<em>$1</em>', $text);
 
     $text = preg_replace('/\+(.*?)\+/', '<u>$1</u>', $text);
 
+    // Convert color
     $text = preg_replace('/\{color:(#[0-9A-Fa-f]{6})\}(.*?)\{color\}/', '<span style="color:$1">$2</span>', $text);
+    
+    // Headers
+    $text = preg_replace('/h([1-6])\.(.*?)(?:\n|$)/', '<h$1>$2</h$1>', $text);
 
-$text = preg_replace('/h([1-6])\.(.*?)(?:\n|$)/', '<h$1>$2</h$1>', $text);
-$text = preg_replace('/\{quote\}(.*?)\{quote\}/s', '<blockquote style="border-left: 4px solid #ccc; padding: 10px; margin: 10px 0; background: #f9f9f9;">$1</blockquote>', $text);
+    // Blockquote
+    $text = preg_replace('/\{quote\}(.*?)\{quote\}/s', '<blockquote style="border-left: 4px solid #ccc; padding: 10px; margin: 10px 0; background: #f9f9f9;">$1</blockquote>', $text);
 
-$text = preg_replace('/\{noformat\}(.*?)\{noformat\}/s', 
-    '<pre style="background: #f4f4f4; border: 1px solid #ccc; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">$1</pre>', 
-    $text);
-
+    // Convert horizontal line
     $text = preg_replace('/----/', '<hr>', $text);
 
+    // Convert bullet lists
     $text = preg_replace_callback('/(?:^|\n)[*] (.*?)(?=\n|$)/m', function ($matches) {
         return '<ul><li>' . trim($matches[1]) . '</li></ul>';
     }, $text);
     
+    // Convert numbered lists
     $text = preg_replace_callback('/(?:^|\n)[#] (.*?)(?=\n|$)/m', function ($matches) {
         return '<ol><li>' . trim($matches[1]) . '</li></ol>';
     }, $text);
 
+    // Merge consecutive <ul> and <ol> lists
     $text = preg_replace('/<\/ul>\s*<ul>/', '', $text);
     $text = preg_replace('/<\/ol>\s*<ol>/', '', $text);
 
@@ -321,6 +380,7 @@ function get_project_id() {
 
     foreach ($projects as $project) {
         if (isset($project['key']) && $project['key'] === $projectkey) {
+            //error_log("Project Found: Name={$project['name']}, ID={$project['id']}, Key={$project['key']}");
             return $project['id'];
         }
     }
@@ -398,6 +458,40 @@ function get_xray_teststeps_old( $x_acpt,$test_id) {
 }
 
 
+
+
+
+/*function replace_xray_attachments($text, $xray_jwt) {
+    return preg_replace_callback('/!xray-attachment:\/\/([\w-]+)(?:\|width=(\d+),height=(\d+))?!/', function ($matches) use ($xray_jwt) {
+        $attachment_id = $matches[1];
+        $width = isset($matches[2]) ? (int)$matches[2] : 640;
+        $height = isset($matches[3]) ? (int)$matches[3] : 480;
+        return "<br><img src=\"xray_image.php?id=$attachment_id&xray_jwt=" . urlencode($xray_jwt) . "\" width=\"$width\" height=\"$height\" alt=\"Xray Attachment\">";
+    }, $text);
+}*/
+/*function replace_xray_attachments($text, $xray_jwt) {
+    return preg_replace_callback('/!xray-attachment:\/\/([\w-]+)(?:\|width=(\d+),height=(\d+))?!/', function ($matches) use ($xray_jwt) {
+        $attachment_id = $matches[1];
+        $width = isset($matches[2]) ? (int)$matches[2] : 640;
+        $height = isset($matches[3]) ? (int)$matches[3] : 480;
+
+        // Enforce max width of 300px while maintaining aspect ratio
+        if ($width > 300) {
+            $height = intval(($height / $width) * 300);
+            $width = 300;
+        }
+
+        $image_url = "xray_image.php?id=$attachment_id&xray_jwt=" . urlencode($xray_jwt);
+
+        return "<br>
+            <a href=\"$image_url\" target=\"_blank\">
+                <img src=\"$image_url\" width=\"$width\" height=\"$height\" style=\"max-width:300px; height:auto;\" alt=\"Xray Attachment\">
+            </a>";
+    }, $text);
+}
+*/
+
+
 function replace_xray_attachments($text, $xray_jwt) {
     $modal_script = <<<HTML
     <script>
@@ -450,28 +544,115 @@ function replace_xray_attachment_links($text, $xray_jwt) {
     }, $text);
 }
 
-
+function get_issuelinks_links($issue, $jirahost) {
+    $links = [];
+    if (isset($issue['fields']['issuelinks']) && is_array($issue['fields']['issuelinks'])) {
+        foreach ($issue['fields']['issuelinks'] as $link) {
+            if (isset($link['outwardIssue']['key'])) {
+                $key = $link['outwardIssue']['key'];
+                $url = $jirahost . "/browse/" . $key;
+                $links[] = '<a href="' . htmlspecialchars($url) . '" target="_blank">' . htmlspecialchars($key) . '</a>';
+            } elseif (isset($link['inwardIssue']['key'])) {
+                $key = $link['inwardIssue']['key'];
+                $url = $jirahost . "/browse/" . $key;
+                $links[] = '<a href="' . htmlspecialchars($url) . '" target="_blank">' . htmlspecialchars($key) . '</a>';
+            }
+        }
+    }
+    return implode(', ', $links);
+}
 
 
 $descriptionHtml = parse_adf(isset($description['content']) ? $description['content'] : array());
 $issue_key = htmlspecialchars($issue['key']);
 $issue_summary = htmlspecialchars($issue['fields']['summary']);
+$issuetype = isset($issue['fields']['issuetype']['name']) ? $issue['fields']['issuetype']['name'] : '';
 $issue_link = "$jirahost/browse/$issue_key";
 $issue_numid=$issue['id'];
 $projectid=get_project_id();
 //echo($projectid);
-$xray_jwt = authenticate_xray();
+//$xray_jwt=get_xray_jwt($projectid);
+//$xray_jwt = authenticate_xray();
 
-//echo($xray_jwt);
-sleep(0.1);
-//echo($issue_numid);
-$xray_steps = get_xray_teststeps($xray_jwt, $issue_numid);
-//var_dump($xray_steps);
+$xray_steps = ['steps' => []];
+$xray_jwt = null;
+
+if ($output_format === 'json') {
+    header('Content-Type: application/json');
+    $linked_keys = [];
+    if (isset($issue['fields']['issuelinks'])) {
+        foreach ($issue['fields']['issuelinks'] as $link) {
+            if (isset($link['outwardIssue']['key'])) $linked_keys[] = $link['outwardIssue']['key'];
+            elseif (isset($link['inwardIssue']['key'])) $linked_keys[] = $link['inwardIssue']['key'];
+        }
+    }
+    $clean_steps = [];
+    foreach ($xray_steps['steps'] as $step) {
+        $clean_steps[] = [
+            'step' => $step['index'],
+            'action' => trim(strip_tags(preg_replace('/\{[^}]+\}/', '', $step['action']))),
+            'data' => trim(strip_tags(preg_replace('/\{[^}]+\}/', '', $step['data']))),
+            'result' => trim(strip_tags(preg_replace('/\{[^}]+\}/', '', $step['result'])))
+        ];
+    }
+    
+    // Prepare base JSON Jira object
+    $jira_json = [
+        "key" => $issue['key'], 
+        "summary" => $issue['fields']['summary'], 
+        "description" => $issue['fields']['description'], 
+        "type" => $issuetype, 
+        "links" => $linked_keys
+    ];
+
+    // Append additional requested fields for JSON
+    if (isset($query['addfields'])) {
+        $addfields = explode(',', $query['addfields']);
+        foreach ($addfields as $cf) {
+            $cf = trim($cf);
+            if (isset($issue['fields'][$cf])) {
+                $jira_json[$cf] = $issue['fields'][$cf];
+            }
+        }
+    }
+
+    echo json_encode([
+        "jira" => $jira_json,
+        "xray" => ["steps" => $clean_steps]
+    ]);
+    exit;
+}
+
 $cssTableStyleFile="csstablestyle.css";
 $cssTableStyle=file_get_contents($cssTableStyleFile);
 
+$extraFieldsHtml = "";
+if (isset($query['addfields'])) {
+    $addfields = explode(',', $query['addfields']);
+    foreach ($addfields as $cf) {
+        $cf = trim($cf);
+        if (isset($issue['fields'][$cf]) && $issue['fields'][$cf] !== null) {
+            $fieldData = $issue['fields'][$cf];
+            $extraFieldsHtml .= "<h3>" . htmlspecialchars($cf) . "</h3><div>";
+            
+            // Check if it's an ADF doc
+            if (is_array($fieldData) && isset($fieldData['type']) && $fieldData['type'] === 'doc') {
+                $extraFieldsHtml .= parse_adf(isset($fieldData['content']) ? $fieldData['content'] : array());
+            } else {
+                // Fallback for simple strings or other data types
+                if (is_scalar($fieldData)) {
+                    $extraFieldsHtml .= nl2br(htmlspecialchars((string)$fieldData));
+                } else {
+                    $extraFieldsHtml .= "<pre>" . htmlspecialchars(json_encode($fieldData, JSON_PRETTY_PRINT)) . "</pre>";
+                }
+            }
+            $extraFieldsHtml .= "</div><br>";
+        }
+    }
+}
+
 echo "<!DOCTYPE html><html>
-<head><title>$issue_key - $issue_summary</title>   <link rel='shortcut icon' type='image/png' href=\"$iconfile\" />";
+<head><title>$issue_key - $issue_summary</title>    <link rel='shortcut icon' type='image/png' href=\"$iconfile\" />";
 echo "<link rel='stylesheet' type='text/css' href='$cssTableStyleFile' />";
 echo "      <style>
          pre {
@@ -487,18 +668,30 @@ echo "<div>";
 echo "<h2><a href='$issue_link' target='_blank'>$issue_key</a> - $issue_summary</h2>";
 echo "<div>$descriptionHtml</div>";
 
-echo "<h3>Xray Steps</h3>";
-echo "<table id=\"stepstable\" class=\"blueTable\"><thead><tr><th>Step</th><th>Action</th><th>Data</th><th>Result</th></tr></thead>";
-foreach ($xray_steps['steps'] as $step) {
-    echo "<tr>
-	<td>" . $step['index'] . "</td>
-        <td><pre>" . replace_xray_attachment_links(replace_xray_attachments(convertAtlassianMarkupToHtml(htmlspecialchars($step['action'])), $xray_jwt), $xray_jwt) . "</pre></td>
-        <td>" . replace_xray_attachment_links(replace_xray_attachments(convertAtlassianMarkupToHtml(htmlspecialchars($step['data'])), $xray_jwt), $xray_jwt) . "</td>
-        <td>" . replace_xray_attachment_links(replace_xray_attachments(convertAtlassianMarkupToHtml(htmlspecialchars($step['result'])), $xray_jwt), $xray_jwt) . "</td>
-    </tr>";
+echo $extraFieldsHtml;
+
+$issue_links_html = get_issuelinks_links($issue, $jirahost);
+if (!empty($issue_links_html)) {
+    echo "<h3>Linked Issues</h3><div>$issue_links_html</div><br>";
 }
 
-echo "</table>";
+if ($issuetype === 'Test' || $issuetype === 'Precondition') {
+    echo "<h3>Xray Steps</h3>";
+    echo "<table id=\"stepstable\" class=\"blueTable\"><thead><tr><th>Step</th><th>Action</th><th>Data</th><th>Result</th></tr></thead>";
+    //foreach ($xray_steps['steps'] as $step) {
+    //    echo "<tr><td>" . htmlspecialchars($step['action']) . "</td><td>" . htmlspecialchars($step['data']) . "</td><td>" . htmlspecialchars($step['result']) . "</td></tr>";
+    //}
+    foreach ($xray_steps['steps'] as $step) {
+        echo "<tr>
+        <td>" . $step['index'] . "</td>
+            <td><pre>" . replace_xray_attachment_links(replace_xray_attachments(convertAtlassianMarkupToHtml(htmlspecialchars($step['action'])), $xray_jwt), $xray_jwt) . "</pre></td>
+            <td>" . replace_xray_attachment_links(replace_xray_attachments(convertAtlassianMarkupToHtml(htmlspecialchars($step['data'])), $xray_jwt), $xray_jwt) . "</td>
+            <td>" . replace_xray_attachment_links(replace_xray_attachments(convertAtlassianMarkupToHtml(htmlspecialchars($step['result'])), $xray_jwt), $xray_jwt) . "</td>
+        </tr>";
+    }
+    echo "</table>";
+}
+
 echo "</div>";
 echo "</body></html>";
 ?>

@@ -518,12 +518,19 @@ foreach($suitekeys as $suitekey) {
 	    {
 		if($TestNameColID==$testtdcnt)
 		{
+			$copilotButton = "";
+                    if (isset($copilotEnabled) && $copilotEnabled == true) {
+                        $copilotButton = "</a>&nbsp;".
+										 "<a href=\"javascript:void(0);\" onclick=\"event.stopPropagation(); analyzeLogsWithUserKey($testkey);\">".
+                                         "<img src=\"img/icons/Gnome-face-monkey.svg\" style=\"width:15px; height:15px\" title=\"Analyze with AI\" alt=\"Analyze with AI \"></a>&nbsp;";
+                    }
 		    $columnsresulttesttablevalues.="<td value=\"$testcolumnvalue\">".
 									    "<a href=\"#testrow_$testkey\" onclick=\"event.stopPropagation();return copyAnchor('testrow_'+$testkey);\">".
 									    "<img src=\"img/icons/Gnome-emblem-symbolic-link.svg\" style=\"width:15px; height:15px\" title=\"Copy Anchor\" alt=\"Copy Anchor \">".
 									    "</a>&nbsp;".
 									    "<a href=\"testhistoryloader.php?runname=$RUNNAME&testname=$testcolumnvalue\" onclick=\"event.stopPropagation();\" target=\"_blank\">".
 									    "<img src=\"img/icons/Gnumeric.svg\" style=\"width:15px; height:15px\" title=\"Test History\" alt=\"Test History \">".
+										"$copilotButton".
 									    "$tempvideovalue".
 									    "</a>&nbsp;$testcolumnvalue&nbsp;</td>";
 		}
@@ -639,10 +646,27 @@ echo "&nbsp;<div style=\"margin-left:auto;float:right;text-align:right;padding-r
 &nbsp;&nbsp;<input id=\"showhideallsuites\" type=\"image\" src=\"img/icons/Gnome-view-sort-descending.svg\" style=\"width:30px;\" onclick=\"return showHideAllSuites();\" title=\"Expand Suites\">
 </div>&nbsp;";
 
+$repo_options = "";
+$repo_prompts_js = "<script>var repoPrompts = {};\n";
+
+if (isset($ai_git_projects) && is_array($ai_git_projects)) {
+    foreach ($ai_git_projects as $displayName => $projectData) {
+        $repo = $projectData['repo'];
+        $prompt = $projectData['prompt'];
+        $repo_options .= "<option value=\"" . $repo . "\">" . $displayName . "</option>";
+        $repo_prompts_js .= "repoPrompts['" . $repo . "'] = " . json_encode($prompt) . ";\n";
+    }
+}
+$repo_prompts_js .= "</script>\n";
+
 echo("<div style=\"border-right: 5px solid lavender;margin-left:auto;float:right;text-align:right;padding-right: 10px;display: inline-block; background-color: #cecccc;padding:5px;-moz-border-radius:10px 10px 0 0;   \">
+<label style=\"vertical-align: middle; font-weight: bold; margin-right: 5px; color: #444;\" for=\"ai_repo_selector\">AI Repo:</label>
+<select id=\"ai_repo_selector\" onchange=\"localStorage.setItem('selected_ai_repo', this.value);\" style=\"vertical-align: middle; margin-right: 15px; padding: 2px; border-radius: 4px;\">" . $repo_options . "</select>
 <input type=\"checkbox\" style=\"vertical-align: middle;\" id=\"hide_info_checkbox\" title=\"Hide [INFO] logs\"  onclick=\"return onshowhidecheckbox_checked(this);\" checked><label  title=\"Hide [INFO] logs\" style=\"vertical-align: middle;\" for=\"hide_info_checkbox\">Hide [INFO]</label>
 <input type=\"checkbox\" style=\"vertical-align: middle;\" id=\"hide_other_checkbox\" title=\"Hide Other except Error/Fail logs\"  onclick=\"return onshowhidecheckbox_checked(this);\"><label  title=\"Hide Other except Error/Fail logs\" style=\"vertical-align: middle;\" for=\"hide_other_checkbox\">Hide Other</label>
 </div>&nbsp;&nbsp;");
+
+echo($repo_prompts_js);
 
 echo $totalresulttables;
 
@@ -655,6 +679,12 @@ echo $totalresulttables;
 //echo $testtable;
 
 echo("<script  type=\"text/javascript\">
+
+var savedRepo = localStorage.getItem('selected_ai_repo');
+var repoSelectorLoad = document.getElementById('ai_repo_selector');
+if (savedRepo && repoSelectorLoad) {
+    repoSelectorLoad.value = savedRepo;
+}
 
 var currentUrl = document.URL,
 urlParts = currentUrl.split('#');
@@ -1070,6 +1100,517 @@ function copyAnchor(anchor) {
     document.execCommand('copy');
     document.body.removeChild(dummy);
 }
+
+
+// =======================================================================
+// AI LOG ANALYZER (Auto-switches between Free & Enterprise based on token start chars)
+// =======================================================================
+
+function fetchJiraContextMarkdown(ticketId) {
+    return fetch('getxraycasepage.php?caseid=' + encodeURIComponent(ticketId) + '&output=json')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+            if (!data || data.error) return null;
+            let md = \"### JIRA TICKET: \" + data.jira.key + \" (\" + data.jira.type + \")\\n\";
+            md += \"**Summary:** \" + data.jira.summary + \"\\n\";
+            
+            // --- START: Parse Atlassian Document Format (ADF) Description ---
+            if (data.jira.description) {
+                md += \"**Description:**\\n\";
+                if (typeof data.jira.description === 'string') {
+                    md += data.jira.description + \"\\n\\n\";
+                } else if (typeof data.jira.description === 'object') {
+                    // Recursive parser for ADF JSON
+                    function parseAdf(node) {
+                        if (!node) return \"\";
+                        if (typeof node === 'string') return node;
+                        let res = \"\";
+                        if (node.type === 'text') {
+                            res += node.text;
+                        } else if (node.type === 'paragraph' && node.content) {
+                            res += node.content.map(parseAdf).join(\"\") + \"\\n\\n\";
+                        } else if (node.type === 'heading' && node.content) {
+                            let lvl = (node.attrs && node.attrs.level) ? node.attrs.level : 1;
+                            res += \"#\".repeat(lvl) + \" \" + node.content.map(parseAdf).join(\"\") + \"\\n\\n\";
+                        } else if (node.type === 'bulletList' && node.content) {
+                            res += node.content.map(li => \"- \" + parseAdf(li)).join(\"\") + \"\\n\";
+                        } else if (node.type === 'orderedList' && node.content) {
+                            res += node.content.map((li, i) => (i+1) + \". \" + parseAdf(li)).join(\"\") + \"\\n\";
+                        } else if (node.type === 'listItem' && node.content) {
+                            res += node.content.map(parseAdf).join(\"\").trim() + \"\\n\";
+                        } else if (node.content) {
+                            res += node.content.map(parseAdf).join(\"\");
+                        }
+                        return res;
+                    }
+                    md += parseAdf(data.jira.description) + \"\\n\";
+                }
+            }
+            // --- END: Parse Atlassian Document Format ---
+
+            if (data.xray && data.xray.steps && data.xray.steps.length > 0) {
+                md += \"**Xray Steps:**\\n\";
+                data.xray.steps.forEach(s => {
+                    md += \"Step \" + s.step + \": \" + s.action + \"\\n\";
+                    if (s.data) md += \" - Data: \" + s.data + \"\\n\";
+                    if (s.result) md += \" - Expected: \" + s.result + \"\\n\";
+                });
+            }
+            return { markdown: md, links: data.jira.links || [] };
+        }).catch(e => null);
+}
+
+function analyzeLogsWithUserKey(testid) {
+
+    var FREE_MAX_TOTAL_CHARS = $copilot_free_max_total_chars;
+    var FREE_MAX_LINE_CHARS = $copilot_free_max_line_chars;
+    var FREE_MODEL = '$copilot_free_model';
+
+    var PAID_MAX_TOTAL_CHARS = $copilot_paid_max_total_chars;
+    var PAID_MAX_LINE_CHARS = $copilot_paid_max_line_chars;
+    var PAID_MODEL = '$copilot_paid_model';
+
+    var firedid = testid; 
+    var targetel = \"testlogsrow_\" + firedid;
+    var targetcol = \"testscolumn_\" + firedid;
+    var targetColElement = document.getElementById(targetcol);
+    
+    if(!targetColElement || !targetColElement.innerHTML.length) {
+        alert(\"Please expand the test row first to load the logs before using AI analysis.\");
+        return;
+    }
+
+    var apiKey = localStorage.getItem('user_llm_api_key');
+    if (!apiKey) {
+        apiKey = prompt('Paste GitHub PAT (Free limits) OR Copilot IDE Token starting with ghu_ (Enterprise Limits):');
+        if (!apiKey) return;
+        localStorage.setItem('user_llm_api_key', apiKey);
+    }
+
+    // Auto-detect mode based on the token string!
+    var isEnterprise = (apiKey.startsWith('ghu_') || apiKey.startsWith('gho_'));
+    
+    // Apply dynamic limits based on mode
+    var MAX_TOTAL_CHARS = isEnterprise ? PAID_MAX_TOTAL_CHARS : FREE_MAX_TOTAL_CHARS;
+    var MAX_LINE_CHARS = isEnterprise ? PAID_MAX_LINE_CHARS : FREE_MAX_LINE_CHARS;
+    var selectedModel = isEnterprise ? PAID_MODEL : FREE_MODEL;
+
+    var testRow = document.getElementById('testrow_' + firedid);
+    var testMethodName = 'Unknown Test';
+    var xrayId = 'Unknown Xray';
+    var testStatus = 'Unknown';
+
+    if (testRow) {
+        if (testRow.cells[0]) testMethodName = testRow.cells[0].getAttribute('value') || testMethodName;
+        if (testRow.cells[1]) xrayId = testRow.cells[1].getAttribute('value') || xrayId;
+        if (testRow.cells[3]) testStatus = testRow.cells[3].getAttribute('value') || testStatus;
+    }
+
+    var aiContainerId = 'ai_container_' + firedid;
+    var aiContainer = document.getElementById(aiContainerId);
+    if (!aiContainer) {
+        aiContainer = document.createElement('div');
+        aiContainer.id = aiContainerId;
+        targetColElement.insertBefore(aiContainer, targetColElement.firstChild);
+    }
+
+    // Update UI styling based on mode
+    var modeText = isEnterprise ? \"🚀 [ENTERPRISE]\" : \"🤖 [FREE TIER]\";
+    var modeColor = isEnterprise ? \"#8a2be2\" : \"#5c95f7\";
+    var modeBg = isEnterprise ? \"#fdf5ff\" : \"#f9f9fc\";
+
+    aiContainer.innerHTML = \"<div style='padding: 10px; font-weight: bold; color: \" + modeColor + \";'>\" + modeText + \" Initializing AI Analysis for \" + testMethodName + \"...</div>\";
+	
+
+    // --- START OF EXACT STACK TRACE PARSER & ARRAY SEARCH ---
+    var logNode = targetColElement;
+    var frames = targetColElement.querySelectorAll('iframe');
+    if (frames.length > 0) {
+        try { logNode = frames[0].contentDocument.body; } catch (e) { }
+    }
+    var logText = logNode.innerText || logNode.textContent || '';
+    
+    var fileNameToSearch = ''; 
+    var classMatch = logText.match(/at com\\.qa\\.[^(]+\\(([^:]+\\.java):\\d+\\)/);
+    if (classMatch && classMatch[1]) {
+        fileNameToSearch = classMatch[1];
+    } else {
+        var fallbackMatch = logText.match(/([A-Z][a-zA-Z0-9_]+\\.java):\\d+/);
+        if (fallbackMatch && fallbackMatch[1]) {
+            fileNameToSearch = fallbackMatch[1];
+        }
+    }
+    
+      var repoSelector = document.getElementById('ai_repo_selector');
+    var repoName = repoSelector.options[repoSelector.selectedIndex].value;
+    
+    // Build array of unique search terms
+    var searchTerms = [testMethodName];
+    
+    // Strip .java so GitHub searches for the Class name inside the file!
+    var cleanClassName = fileNameToSearch ? fileNameToSearch.replace('.java', '') : '';
+    
+    if (cleanClassName && cleanClassName !== testMethodName) {
+        searchTerms.push(cleanClassName);
+    }
+    
+    console.log('🎯 Searching GitHub for terms: ', searchTerms);
+
+ var fetchPromises = searchTerms.map(function(term) {
+        var cleanQuery = term.trim();
+        var cleanRepo = repoName.trim();
+        console.log('🚀 Sending to proxy -> query: ' + cleanQuery + ' | repo: ' + cleanRepo);
+        
+        return fetch('fetch_github_code.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: cleanQuery, repo: cleanRepo, limit: 3 })
+        }).then(res => {
+            console.log('📡 Proxy HTTP Status for ' + cleanQuery + ': ' + res.status + ' ' + res.statusText);
+            return res.text();
+        }).then(text => {
+            console.log('📦 Proxy Raw Response Length for ' + cleanQuery + ': ' + text.length);
+            if (text.length < 200) console.log('📦 Proxy Raw Body: ' + text);
+            return text;
+        }).catch(e => {
+            console.error('🔥 Fetch Exception for ' + cleanQuery + ':', e);
+            return 'Fetch Exception: ' + e.message;
+        });
+    });
+
+    // Resolve all promises concurrently
+    var searchPromise = Promise.all(fetchPromises).then(function(results) {
+        var combined = '';
+        var seenCodes = {}; 
+        
+        for (var i = 0; i < results.length; i++) {
+            var code = results[i];
+            console.log('--- 🔎 Checking proxy result for: ' + searchTerms[i] + ' ---');
+            
+            if (code && typeof code === 'string' && code.indexOf('Code not found in repository') === -1 && code.trim() !== '' && code.indexOf('Fetch Exception') === -1) {
+                if (!seenCodes[code]) {
+                    seenCodes[code] = true;
+                    combined += '\\n--- ACTUAL REPOSITORY SOURCE CODE (' + searchTerms[i] + ') ---\\n' + code + '\\n';
+                    console.log('✅ KEPT code for: ' + searchTerms[i]);
+                } else {
+                    console.log('⚠️ IGNORED duplicate code for: ' + searchTerms[i]);
+                }
+            } else {
+                console.log('❌ THREW AWAY result for: ' + searchTerms[i] + ' (Was empty, 404, or not found)');
+            }
+        }
+        return combined;
+    });
+
+
+    searchPromise.then(sourceCode => {
+        var filePath = sourceCode ? \"Code securely loaded from backend.\" : \"Unknown (could not find in repo)\";
+
+        aiContainer.innerHTML = \"<div style='padding: 10px; font-weight: bold; color: \" + modeColor + \";'>\" + modeText + \" Fetching Context & Parsing logs (Limit: \" + MAX_TOTAL_CHARS + \" chars)...</div>\";
+
+        var jiraContextPromise = Promise.resolve(\"No Jira context available.\");
+        if (xrayId && xrayId !== 'Unknown Xray') {
+            jiraContextPromise = fetchJiraContextMarkdown(xrayId).then(mainTicket => {
+                if (!mainTicket) return \"Failed to load Jira context for \" + xrayId;
+                let contextText = mainTicket.markdown + \"\\n\";
+                if (isEnterprise && mainTicket.links.length > 0) {
+                    aiContainer.innerHTML = \"<div style='padding: 10px; font-weight: bold; color: \" + modeColor + \";'>\" + modeText + \" Enterprise: Fetching \" + mainTicket.links.length + \" linked Jira issues...</div>\";
+                    let linkPromises = mainTicket.links.map(link => fetchJiraContextMarkdown(link));
+                    return Promise.all(linkPromises).then(linkedTickets => {
+                        contextText += \"\\n--- LINKED ISSUES CONTEXT ---\\n\";
+                        linkedTickets.forEach(lt => { if (lt) contextText += lt.markdown + \"\\n\"; });
+                        return contextText;
+                    });
+                }
+                return contextText;
+            });
+        }
+
+        return jiraContextPromise.then(finalJiraContext => {
+
+            var logDomNode = targetColElement;
+            var iframes = targetColElement.querySelectorAll('iframe');
+            if (iframes.length > 0) {
+                try { logDomNode = iframes[0].contentDocument.body; } catch (e) { console.log(\"Failed to read iframe:\", e); }
+            }
+
+            var allRows = logDomNode.querySelectorAll('tr');
+            var allLines = [];
+            var importantLines = [];
+
+            for (var i = 0; i < allRows.length; i++) {
+                var tr = allRows[i];
+                var codeNode = tr.querySelector('td code');
+                
+                if (codeNode) {
+                    var rawLine = codeNode.textContent.trim();
+                    if (rawLine) {
+                        var cutLine = rawLine.length > MAX_LINE_CHARS ? rawLine.substring(0, MAX_LINE_CHARS) + '...[cut]' : rawLine;
+                        allLines.push(cutLine);
+                        if (codeNode.querySelector('font')) importantLines.push(cutLine);
+                    }
+                }
+            }
+
+            if (allLines.length === 0) throw new Error('Logs are empty (No <td><code> elements found).');
+
+                       var injectedContext = \"Test Method: \" + testMethodName + \"\\n\" +
+                                  \"Repository File Path: \" + filePath + \"\\n\" +
+                                  \"Current Status: \" + testStatus + \"\\n\\n\" +
+                                  \"--- JIRA / XRAY CONTEXT ---\\n\" +
+                                  finalJiraContext + \"\\n\\n\";
+
+            if (sourceCode && sourceCode.trim() !== '') {
+                injectedContext += '--- ACTUAL REPOSITORY SOURCE CODE ---\\n' + sourceCode + '\\n\\n';
+                console.log('✅ Java Source Code successfully appended to prompt! Length: ' + sourceCode.length);
+            } else {
+                console.error('❌ NO SOURCE CODE WAS APPENDED! fetch_github_code.php returned: ' + sourceCode);
+            }
+
+            var availChars = MAX_TOTAL_CHARS - injectedContext.length;
+            if (availChars < 2000) availChars = 2000;
+
+            var fullText = allLines.join('\\n');
+            var truncatedLogs = fullText;
+
+            if (fullText.length > availChars) {
+                var statusUpper = testStatus.toUpperCase();
+                if (statusUpper === 'ERROR' || statusUpper === 'FAIL' || statusUpper === 'SKIP') {
+                    var importantText = importantLines.join('\\n');
+                    if (importantText.length > availChars) importantText = importantText.slice(-availChars);
+
+                    var remainingBudget = Math.max(0, availChars - importantText.length);
+                    var startBudget = Math.floor(remainingBudget / 3);
+                    var endBudget = remainingBudget - startBudget;
+
+                    var topLines = [];
+                    var topChars = 0;
+                    var topIndex = 0;
+
+                    while (topIndex < allLines.length && topChars + allLines[topIndex].length < startBudget) {
+                        topLines.push(allLines[topIndex]);
+                        topChars += allLines[topIndex].length + 1;
+                        topIndex++;
+                    }
+
+                    var bottomLines = [];
+                    var bottomChars = 0;
+                    var bottomIndex = allLines.length - 1;
+
+                    while (bottomIndex >= topIndex && bottomChars + allLines[bottomIndex].length < endBudget) {
+                        bottomLines.unshift(allLines[bottomIndex]);
+                        bottomChars += allLines[bottomIndex].length + 1;
+                        bottomIndex--;
+                    }
+                    
+                    truncatedLogs = \"--- START OF LOGS ---\\n\" + topLines.join('\\n') + \"\\n\\n\" +
+                                    \"--- IMPORTANT STYLED LOGS (ERRORS/WARNINGS) ---\\n```text\\n\" + importantText + \"\\n```\\n\\n\" +
+                                    \"--- END OF LOGS (CRASH & STACK TRACE) ---\\n\" + bottomLines.join('\\n');
+                    
+                } else {
+                    truncatedLogs = '...[TRUNCATED]...\\n' + fullText.slice(-availChars);
+                }
+            }
+            
+            injectedContext += \"LOGS:\\n\" + truncatedLogs;
+
+            var systemPrompt = (typeof repoPrompts !== 'undefined' && repoPrompts[repoName]) ? repoPrompts[repoName] : `$copilot_system_prompt`;
+			console.log(systemPrompt);
+				
+				
+            // DYNAMIC ROUTING BASED ON MODE
+            var fetchPromise;
+
+            /*if (isEnterprise) {
+                console.log(\"=== ENTERPRISE DATA SENT ===\");
+                console.log(\"TOTAL PAYLOAD LENGTH:\", injectedContext.length);
+				 console.log('=== FULL PAYLOAD SENT TO AI ===\\n' + injectedContext);
+                fetchPromise = fetch('copilot_proxy.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        model: selectedModel,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: injectedContext }
+                        ]
+                    })
+                });
+            } else {*/
+			            if (isEnterprise) {
+                console.log(\"=== ENTERPRISE DATA SENT ===\");
+                console.log(\"TOTAL PAYLOAD LENGTH:\", injectedContext.length);
+
+                var blobLinks = [];
+                var logRows = logDomNode.querySelectorAll('tr');
+                for (var r = 0; r < logRows.length; r++) {
+                    if (logRows[r].textContent.indexOf('[FAIL]') > -1 || logRows[r].textContent.indexOf('[ERROR]') > -1) {
+                        var link = logRows[r].querySelector('a[href*=\"getblob.php\"]');
+                        if (link && blobLinks.indexOf(link.href) === -1) blobLinks.push(link.href);
+                    }
+                }
+                
+                console.log(\"🔍 Found \" + blobLinks.length + \" attachment link(s) in failing rows.\");
+
+                fetchPromise = Promise.all(blobLinks.slice(0, 2).map(url => fetch(url).then(r => r.blob()).catch(e => null)))
+                .then(blobs => {
+                    var payload = [];
+                    var extraText = '';
+                    var imageCount = 0;
+
+                    return Promise.all(blobs.filter(b => b).map(blob => new Promise(res => {
+                        var reader = new FileReader();
+                        reader.onloadend = () => {
+                            if (blob.type.indexOf('image') !== -1) {
+                                payload.push({ type: 'image_url', image_url: { url: reader.result } });
+                                imageCount++;
+                            } else {
+                                extraText += '\\n\\n--- ATTACHED FILE (' + blob.type + ') ---\\n' + reader.result;
+                            }
+                            res();
+                        };
+                        blob.type.indexOf('image') !== -1 ? reader.readAsDataURL(blob) : reader.readAsText(blob);
+                    }))).then(() => {
+                        injectedContext += extraText;
+                        
+                        var finalPayload;
+                        if (imageCount > 0) {
+                            console.log('📸 Successfully encoded ' + imageCount + ' image(s) for Gemini Vision!');
+                            finalPayload = [{ type: 'text', text: injectedContext }].concat(payload);
+                        } else {
+                            finalPayload = injectedContext;
+                        }
+
+                        console.log('=== FINAL PAYLOAD GOING TO PROXY ===', finalPayload);
+
+                        return fetch('copilot_proxy.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                apiKey: apiKey,
+                                model: selectedModel,
+                                messages: [
+                                    { role: 'system', content: systemPrompt },
+                                    { role: 'user', content: finalPayload }
+                                ]
+                            })
+                        });
+                    });
+                });
+            } else {
+                console.log(\"=== FREE TIER DATA SENT ===\");
+                console.log(\"TOTAL PAYLOAD LENGTH:\", injectedContext.length);
+                fetchPromise = fetch('https://models.inference.ai.azure.com/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: selectedModel,
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: injectedContext }
+                        ],
+                        temperature: 0.1
+                    })
+                });
+            }
+
+            return fetchPromise;
+        }); // End of jiraContextPromise
+    })
+    .then(aiResponse => {
+        if (!aiResponse.ok) {
+            if (aiResponse.status === 413 && !isEnterprise) {
+                throw new Error('API Error 413: Content Too Large. The logs exceed the max size allowed by the free API tier.');
+            }
+            if (aiResponse.status === 401 || aiResponse.status === 403) {
+                localStorage.removeItem('user_llm_api_key');
+                throw new Error(isEnterprise ? 'Enterprise Token rejected. Make sure your Vim token is still valid!' : 'GitHub Token rejected. Please enter a valid PAT.');
+            }
+            throw new Error('API Error: ' + aiResponse.statusText);
+        }
+        return aiResponse.json();
+    })
+    .then(aiData => {
+        var analysisText = aiData.choices[0].message.content;
+        
+        var formattedHtml = analysisText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        formattedHtml = formattedHtml.replace(/```[a-zA-Z]*\\n([\\s\\S]*?)```/gi, '<div style=\"background:#2b2b2b; color:#f8f8f2; padding:12px; border-radius:6px; font-family:monospace; white-space:pre-wrap; margin:10px 0; overflow-x:auto;\">\$1</div>');
+        formattedHtml = formattedHtml.replace(/`([^`]+)`/g, '<span style=\"background:#e0e0e0; color:#c7254e; padding:2px 5px; border-radius:3px; font-family:monospace; font-size:12px;\">\$1</span>');
+        formattedHtml = formattedHtml.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>\$1</strong>');
+        
+        formattedHtml = formattedHtml.replace(/^###### (.*\$)/gim, '<h6 style=\"margin-top:15px; margin-bottom:5px; color:#222;\">\$1</h6>');
+        formattedHtml = formattedHtml.replace(/^##### (.*\$)/gim, '<h5 style=\"margin-top:15px; margin-bottom:5px; color:#222;\">\$1</h5>');
+        formattedHtml = formattedHtml.replace(/^#### (.*\$)/gim, '<h4 style=\"margin-top:15px; margin-bottom:5px; color:#222;\">\$1</h4>');
+        formattedHtml = formattedHtml.replace(/^### (.*\$)/gim, '<h3 style=\"margin-top:15px; margin-bottom:5px; color:#222;\">\$1</h3>');
+        formattedHtml = formattedHtml.replace(/^## (.*\$)/gim, '<h2 style=\"margin-top:15px; margin-bottom:5px; color:#222;\">\$1</h2>');
+        formattedHtml = formattedHtml.replace(/^# (.*\$)/gim, '<h1 style=\"margin-top:15px; margin-bottom:5px; color:#222;\">\$1</h1>');
+        
+        formattedHtml = formattedHtml.replace(/^[-*] (.*\$)/gim, '<li style=\"margin-left:20px; margin-bottom:3px;\">\$1</li>');
+        
+        var safeMarkdown = encodeURIComponent(analysisText).replace(/'/g, \"\\%27\");
+
+        aiContainer.innerHTML = \"<div style='background: \" + modeBg + \"; padding: 20px; border-radius: 8px; border: 1px solid #d1d5da; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>\" +
+            \"<h4 style='margin-top:0; margin-bottom:15px; border-bottom:1px solid #e1e4e8; padding-bottom:10px; color:#24292e; font-size:16px;'>\" + modeText + \" AI Root Cause Analysis</h4>\" +
+            \"<div style='white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #24292e;'>\" + formattedHtml + \"</div>\" +
+            \"<div style='margin-top: 20px; display: flex; gap: 10px;'>\" +
+                \"<button style='padding: 6px 12px; cursor: pointer; border: 1px solid #d1d5da; background: #fafbfc; border-radius: 6px; font-weight:bold; color:#24292e;' onclick='fallbackCopyTextToClipboard(\\\"\" + safeMarkdown + \"\\\")'>📋 Copy Markdown</button>\" +
+                \"<button style='padding: 6px 12px; cursor: pointer; border: 1px solid #d1d5da; background: #fafbfc; border-radius: 6px; font-weight:bold; color:#cb2431;' onclick='localStorage.removeItem(\\\"user_llm_api_key\\\"); alert(\\\"Token cleared!\\\");'>Clear Saved AI Token</button>\" +
+            \"</div>\" +
+        \"</div>\";
+    })
+    .catch(error => {
+        if (aiContainer) {
+            aiContainer.innerHTML = \"<div style='color: #cb2431; background-color: #ffeef0; padding: 15px; border: 1px solid #f97583; border-radius: 6px; margin: 15px 0;'><b>Error:</b> \" + error.message + \"</div>\";
+        }
+    });
+}
+
+
+function fallbackCopyTextToClipboard(encodedText) {
+    var rawText = decodeURIComponent(encodedText);
+    
+    // Check if HTTPS/Localhost is available
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(rawText).then(function() {
+            alert(\"Markdown copied to clipboard!\");
+        }, function(err) {
+            console.error(\"Could not copy text: \", err);
+        });
+        return;
+    }
+    
+    // HTTP Fallback
+    var textArea = document.createElement(\"textarea\");
+    textArea.value = rawText;
+    
+    // Hide the textarea from view
+    textArea.style.top = \"0\";
+    textArea.style.left = \"0\";
+    textArea.style.position = \"fixed\";
+    textArea.style.opacity = \"0\";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            alert(\"Markdown copied to clipboard!\");
+        } else {
+            console.error(\"Fallback copy failed.\");
+        }
+    } catch (err) {
+        console.error(\"Fallback copy errored: \", err);
+    }
+    
+    document.body.removeChild(textArea);
+}
+
 
 function blinkfunction(elementid,oricellcolor,iter)
 {
