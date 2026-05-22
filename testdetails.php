@@ -79,7 +79,7 @@ $logtablefirstcolname="logid";
                     	elseif($val->name=="meta" && $resultmetacount>0 && $rows[$val->name]!=null)
                     	{
                     	    //$logtablebody.="<td><a href=\"getblob.php?logid=$logid\" target=\"_blank\">Open Image</a></td>";
-                    	    $logtablebody.="<td style=\"width:1%;text-align:center;\"><a href=\"getblob.php?logid=$logid\" target=\"_blank\"><img src=\"getblob.php?logid=$logid&preview=true\" title=\"Open Media\" alt=\"Open Media\"></a></td>";
+                    	    $logtablebody.="<td style=\"width:1%;text-align:center;\"><a href=\"getblob.php?logid=$logid\" target=\"_blank\"><img src=\"getblob.php?logid=$logid&preview=true\" class=\"log-blob\"  title=\"Open Media\" alt=\"Open Media\"></a></td>";
 			    //$logtablebody.="<td><a href=\"getblob.php?logid=$logid\" target=\"_blank\"><img src=\"getblob.php?logid=$logid\" style=\"width:500px; height:20px\" title=\"Open Image\" alt=\"Open Image\"></a></td>";
 									
                     	}
@@ -171,6 +171,17 @@ $logtablefirstcolname="logid";
 //    echo("Page under construction");
     echo $logtable;
     echo ("<script  type=\"text/javascript\">
+	
+	/*document.querySelectorAll('img.log-blob').forEach(function(img) {
+    fetch(img.src, { method: 'HEAD' })
+        .then(response => {
+            if (response.headers.get('X-Blob-Role') === 'ico') {
+                img.style.height = '20px';
+                img.style.maxWidth = '20px';
+            }
+        });*/
+});
+
 function onkeypress_body(event)
 {
     if (event.keyCode == 13 || event.which == 13){
