@@ -99,6 +99,16 @@ $logtablefirstcolname="logid";
 				//print($matches[1]);
 				$logrowvalue="<font style=\"$matches[1];\">".$logrowvalue."</font>";
 			    }
+			    if (strpos($logrowvalue, "DATA-SHOWNL") !== false) 
+				{
+                $logrowvalue = str_replace("DATA-SHOWNL", "", $logrowvalue);
+                $logrowvalue = strtr($logrowvalue, array(
+                "\r\n" => '\n',
+                "\r"   => '\n',
+                "\n"   => '\n',
+                "\t"   => '\t',
+                ));
+                }
 			    /*if(strpos($logrowvalue,"[INFO]")=== false)
 			    {
 				if(strpos($logrowvalue,"[ERROR]")!== false || strpos($logrowvalue,"[FAIL]")!== false)
