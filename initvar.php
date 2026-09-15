@@ -40,7 +40,7 @@ $copilot_free_model = 'gpt-4o';
 
 $copilot_paid_max_total_chars = 120000;
 $copilot_paid_max_line_chars = 1500;
-$copilot_paid_model = 'gemini-2.5-pro';
+$copilot_paid_model = 'gpt-4o';
 
 $ai_git_projects = array(
     "Gateway (Backend)" => array(
