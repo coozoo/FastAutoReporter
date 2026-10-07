@@ -4,6 +4,15 @@ jobs:
   phplint:
     runs-on: ubuntu-latest
     steps:
-        - uses: actions/checkout@v1
-        - uses: michaelw90/PHP-Lint@master
-        
+      - uses: actions/checkout@v4
+      # same PHP as production; installs directly on the runner, no docker build
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.3'
+          tools: none
+          coverage: none
+      - name: php -l
+        run: |
+          php --version
+          # wrap php -l: its exit code 255 would make xargs stop at the first broken file
+          find . -name '*.php' -not -path './SVGGraph/*' -print0 | xargs -0 -n1 sh -c 'php -l "$1" || exit 1' _
