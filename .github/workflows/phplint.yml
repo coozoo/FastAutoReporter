@@ -5,7 +5,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # php is preinstalled on ubuntu-latest runners, no docker build needed
+      # same PHP as production; installs directly on the runner, no docker build
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.3'
+          tools: none
+          coverage: none
       - name: php -l
         run: |
           php --version

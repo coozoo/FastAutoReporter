@@ -15,6 +15,12 @@ Test-run reporting web app: plain PHP + MariaDB, no framework, no build step. Co
 
 ## How code is written here
 
+- **Target PHP 7.3** (production version). Nothing newer:
+  - 7.4+: arrow functions `fn() =>`, typed properties, `??=`, `...` spread in arrays, `1_000` literals
+  - 8.x: `match`, `?->`, named arguments, union/`mixed` types, constructor promotion, `str_contains`/`str_starts_with`/`str_ends_with`
+  
+  A local PHP 8 `php -l` won't catch these; CI lints with 7.3.
+
 - Pages resolve their base path with the `$myreporter = basename(dirname(__FILE__))` block, then `include($_SERVER['DOCUMENT_ROOT']."/$myreporter/initvar.php")`. API files use relative includes (`../../../initvar.php`). Follow whichever the neighboring file uses.
 - Reads go through stored procedures (`call get_runs(...)`, `get_suit`, `get_test_details`, ...). Queries are built as strings: escape every user value with `mysqli_real_escape_string`, use `NULL` literals for missing optional values. Multi-result procedure calls need `while ($mysqli->next_result()) {;}` before the next query.
 - HTML and JS are emitted from PHP (often heredoc/`echo`), PHP config values are injected into JS as literals. Match that style instead of introducing separate bundles.
