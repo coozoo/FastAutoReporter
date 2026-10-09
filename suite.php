@@ -75,6 +75,20 @@ $cssTableStyleFile="csstablestyle.css";
     }
     }
 
+///////////////////////////////////////////////////
+///////////////// amount of run attachments, list itself is loaded only on click
+///////////////////////////////////////////////////
+    $attachmentscount=0;
+    if(ctype_digit((string)$runid))
+    {
+	if($result = $mysqli->query("call get_run_attachments_list($runid);"))
+	{
+	    $attachmentscount=$result->num_rows;
+	    $result->close();
+	    while($mysqli->more_results() && $mysqli->next_result()) {;}
+	}
+    }
+
 //echo $runid."<br>";
 //echo("You requested suit with runid $runid. <br>But you will got... God knows what <br>'cause this page is not ready yet");
 
@@ -199,7 +213,9 @@ $suitetabledata=array();
 				{
 				    $runtablebody.="<td id=\"".$val->name."\" value=\"".$rows[$val->name]."\">".$rows[$val->name]."&nbsp;<a href=\"downloadrunlogs.php?runid=$runid\">".
 									    "<img src=\"img/icons/Gnome-document-save.svg\" style=\"width:20px; height:20px\" title=\"Download Full Logs\" alt=\"Downlaod\">".
-									    "</a></td>";
+									    "</a>".
+									    (($attachmentscount>0)?"&nbsp;<a href=\"javascript:void(0);\" onclick=\"showhideattachments($runid);\" style=\"text-decoration:none;\" title=\"Show/Hide Attachments\">&#128206;$attachmentscount</a>":"").
+									    "</td>";
 				}
 				else
 				{
@@ -628,6 +644,10 @@ else
 
 echo "<table><tr><td>".$runtableresult."</td></tr></table></td></tr></table></td>";
 echo "</tr></tbody></table><br>";
+if($attachmentscount>0)
+{
+    echo "<div id=\"attachmentsframe\" style=\"display:none;padding-left:10px;\"></div>";
+}
 if($featureview=="false")
 {
     echo "<div style=\"margin-right:auto;display: inline-block;padding-left: 10px;\"><a href=\"feature.php?runid=$runid\"><img alt=\"Feature View\" src=\"img/icons/Gnome-applications-office.svg\" style=\"width:30px;\" title=\"Switch to Feature View\"></a></div>";
@@ -1026,6 +1046,24 @@ function hidesuitesifempty()
 	{
 	    document.getElementById('suitetable_'+suiteid).style.display = \"\";
 	}
+    }
+}
+
+function showhideattachments(runid)
+{
+    var target=document.getElementById('attachmentsframe');
+    if(target.style.display==\"none\")
+    {
+	// list is loaded once on first click, own scroll after 300px
+	if(target.innerHTML==\"\")
+	{
+	    target.innerHTML='<iframe id=\"attachmentsiframe\" src=\"runattachments.php?runid='+runid+'&_='+new Date().getTime()+'\" onload=\"this.style.height=Math.min(this.contentWindow.document.body.scrollHeight+20,300)+\'px\';\" style=\"width:100%;border-width:0;\"></iframe>';
+	}
+	target.style.display=\"\";
+    }
+    else
+    {
+	target.style.display=\"none\";
     }
 }
 

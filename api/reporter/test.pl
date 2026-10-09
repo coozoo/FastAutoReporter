@@ -12,6 +12,7 @@ use Time::HiRes qw(time);
 use POSIX qw(strftime);
 use File::Basename; 
 use File::Spec::Functions qw/ canonpath /; 
+use MIME::Base64 qw( encode_base64 );
 
 my $dirname = basename(getcwd);
 
@@ -210,6 +211,7 @@ my $testpostdata4='{
 
        # "screenshotType": "text/html; charset=utf-8"
 $testURL="http://localhost/FastAutoReporter/api/reporter/test/add.php";
+$attachURL="http://localhost/FastAutoReporter/api/reporter/run/attach.php";
 $testURL =~ tr/'/\"/;
 
 
@@ -329,6 +331,27 @@ print "$runresponse \n";
 	    #my $testdataArray = decode_json($testresponse);
 	    #print Dumper($testdataArray);
 	    #sleep(5);
+############################### call attach files to run (by runId and by runUid for compatibility)
+	    my $runid = decode_json($runresponse)->{'run_id'};
+	    my $jsonb64 = encode_base64('{"passed":2,"failed":2}', '');
+	    my $textb64 = encode_base64("run summary\nline 2\n", '');
+	    my $attachpostdata = '{
+    "runId": '.$runid.',
+    "files": [
+        { "fileName": "summary.json", "contentType": "application/json", "contentBase64": "'.$jsonb64.'" },
+        { "fileName": "summary.txt", "contentType": "text/plain", "contentBase64": "'.$textb64.'" }
+    ]
+}';
+	    my ($attachresponsecode,$attachresponse) = postWebPage($attachURL,$useragent,$attachpostdata);
+	    print "Attach by runId: $attachresponse $attachresponsecode \n";
+	    my $attachpostdata2 = '{
+    "runUid": "'.$runrid.'",
+    "files": [
+        { "fileName": "notype.bin", "contentBase64": "'.$textb64.'" }
+    ]
+}';
+	    my ($attachresponsecode2,$attachresponse2) = postWebPage($attachURL,$useragent,$attachpostdata2);
+	    print "Attach by runUid: $attachresponse2 $attachresponsecode2 \n";
 ############################### call finish run
 	    getWebPage("http://localhost/FastAutoReporter/api/reporter/run/finish.php?runuid=$runrid")
 	}

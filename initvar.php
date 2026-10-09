@@ -1,5 +1,9 @@
 <?php
     $iconfile="img/normal/icontiny.png";
+	
+	//max size of one run attachment in bytes (after base64 decoding)
+	//php.ini post_max_size and memory_limit must be bigger (base64 adds ~33% and request is held in memory)
+	$attachmentMaxBytes=10485760;
 
 // xxxxxEnabled flags will show hide any appearance in UI like columns or buttons
 
