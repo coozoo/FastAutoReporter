@@ -10,7 +10,7 @@ Test-run reporting web app: plain PHP + MariaDB, no framework, no build step. Co
 - `initvar.php` — all app config and feature flags (`$testrailEnabled`, `$jiraEnabled`, `$xrayEnabled`, `$copilotEnabled`, AI prompts, per-repo `$ai_git_projects`).
 - `mysqli_connection.php` — `OpenCon()` / `CloseCon()`.
 - `reporterdb.sql` — full schema: tables, **stored procedures**, events. The DB logic lives here, not in PHP.
-- `copilot_proxy.php`, `fetch_github_code.php` — server-side helpers for the Copilot log analysis; the client logic is JS inside `suite.php` (~line 1160+).
+- `ai_analyzer.js` — AI log analysis in the suite view: shared context building (only from logs the user expanded), Copilot analysis, Custom AI (only builds the context for the user to copy into any AI tool). Settings come from `AI_CONFIG` set in `suite.php` from `initvar.php`. `copilot_proxy.php`, `fetch_github_code.php` are its server-side helpers.
 - `stuff/testrail.php` (vendored TestRail API), `SVGGraph/` (git submodule — don't edit).
 
 ## How code is written here
