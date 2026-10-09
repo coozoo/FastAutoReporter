@@ -97,6 +97,8 @@ Each endpoint will return short info how to call it just call this page from bro
 
 ./api/reporter/run/finish.php - mark run as finished
 
+./api/reporter/run/attach.php - attach files to run (base64 list, returns ids of attachments);
+
 ./api/reporter/suite/add.php - add suite;
 
 ./api/reporter/test/add.php - add test and logs;
@@ -124,6 +126,8 @@ RewriteRule .* - [L,R=404]
 
 **feature.php** - simply call suite.php in another view mode;
 
+**getattachment.php** - run attachment loader (`?attachmentid=15`, add `&download=true` to force download);
+
 **getblob.php** - blob loader from DB;
 
 **getrunstatus.php** - status of test run;
@@ -133,6 +137,8 @@ RewriteRule .* - [L,R=404]
 **index.php** - main page with filters;
 
 **mysqli_connection.php** - mysql connector;
+
+**runattachments.php** - list of run attachments (loaded into suite view on click);
 
 **runs.php** - list of tables;
 
@@ -216,6 +222,19 @@ Here list of procedures used in project, purpose and examples how to call them:
 
 <details>
   <summary>
+    <b>add_attachment</b> - procedure adds file attached to test run and returns its attachment_id, size is calculated from content.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>runId</i> BIGINT</b> - run ID, returns MYSQL_ERROR 1452 if there is no such run;<br>
+       <b>IN <i>fileName</i> VARCHAR(255)</b> - original file name;<br>
+       <b>IN <i>contentType</i> VARCHAR(127)</b> - mime type;<br>
+       <b>IN <i>content</i> LONGBLOB</b> - file content;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call add_attachment(3841,'summary.json','application/json','{"passed":10}')</i> - attach json file to run<br>
+</details>
+
+<details>
+  <summary>
     <b>close_running</b> - procedure that estimates common run time for test run and close test run if time is exceeded.<br>
   </summary>
   Procedure doesn't require any parameters
@@ -226,6 +245,16 @@ Here list of procedures used in project, purpose and examples how to call them:
     <b>count_runs</b> - procedure returns currently visible amount of test runs.<br>
   </summary>
   All procedure parameters the same as for <i>get_runs</i> (basically it would be good to merge this precedures and return sets but in such case it is required to change php code a bit).
+</details>
+
+<details>
+  <summary>
+    <b>delete_old_attachments</b> - procedure will delete old run attachments.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>number_of_days</i> INT</b> - number of days, everything older than this amount of days will be deleted<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call delete_old_attachments(30)</i> - delete attachments older than 30 days<br>
 </details>
 
 <details>
@@ -247,6 +276,16 @@ Here list of procedures used in project, purpose and examples how to call them:
        <b>IN <i>is_dev_run</i> BOOL</b> - type of runs to delete;<br>
   <br><b><i><u>Examples:</u></i></b><br>
        <i>call delete_old_runs(7,true)</i> - delete dev test tuns older than 7 days<br>
+</details>
+
+<details>
+  <summary>
+    <b>get_attachment</b> - procedure returns attachment file name, type, file size and content.<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>ATTACHMENTID</i> BIGINT</b> - attachment ID;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_attachment(15)</i> - returns attachment with ID 15<br>
 </details>
 
 <details>
@@ -305,6 +344,16 @@ Here list of procedures used in project, purpose and examples how to call them:
 
 <details>
   <summary>
+    <b>get_run_attachments_list</b> - procedure returns list of run attachments without content (id, file name, type, file size, date).<br>
+  </summary>
+  <br><b><i><u>Parameters:</u></i></b><br>
+       <b>IN <i>RUNID</i> BIGINT</b> - run ID;<br>
+  <br><b><i><u>Examples:</u></i></b><br>
+       <i>call get_run_attachments_list(3841)</i> - returns attachments list of run 3841<br>
+</details>
+
+<details>
+  <summary>
     <b>get_run_details</b> - procedure to get brief info about run.<br>
   </summary>
   <br><b><i><u>Parameters:</u></i></b><br>
@@ -357,4 +406,6 @@ Events important for DB maintanance and some frontend functionality.
 **remove_old_dev_runs** - maintanance event to clear dev test runs it calls `delete_old_runs` procedure.
 
 **remove_old_logs** - maintanance event to clear old logs it calls `delete_old_logs` procedure.
+
+**remove_old_attachments** - maintanance event to clear run attachments older than 30 days it calls `delete_old_attachments` procedure.
 

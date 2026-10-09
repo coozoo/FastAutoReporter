@@ -28,6 +28,21 @@ DELIMITER $$
 --
 -- Procedures
 --
+DROP PROCEDURE IF EXISTS `add_attachment`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `add_attachment` (IN `runId` BIGINT, IN `fileName` VARCHAR(255), IN `contentType` VARCHAR(127), IN `content` LONGBLOB)  BEGIN
+	DECLARE errno INT;
+	DECLARE EXIT HANDLER FOR SQLEXCEPTION
+	BEGIN
+		GET CURRENT DIAGNOSTICS CONDITION 1 errno = MYSQL_ERRNO;
+		SELECT errno AS MYSQL_ERROR;
+	END;
+
+	-- not existing run is rejected by fk_attachment_rid (MYSQL_ERROR 1452)
+	insert into attachment (at_run_id, at_file_name, at_content_type, at_size, at_content)
+	values (runId, fileName, contentType, LENGTH(content), content);
+	select LAST_INSERT_ID() as attachment_id;
+END$$
+
 DROP PROCEDURE IF EXISTS `add_run`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `add_run` (IN `buildVersion` LONGTEXT, IN `environment` VARCHAR(255), IN `runName` VARCHAR(255), IN `runUid` VARCHAR(255), IN `testTeam` VARCHAR(255), IN `testType` VARCHAR(255), IN `isDevelopementRun` BOOL)  BEGIN
 	DECLARE environment_id BIGINT;
@@ -421,6 +436,14 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `count_runs` (IN `userenv` VARCHAR(2
 
 END$$
 
+DROP PROCEDURE IF EXISTS `delete_old_attachments`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_old_attachments` (IN `number_of_days` INT)  delete_old_attachments:BEGIN
+    IF number_of_days is NULL THEN
+        LEAVE delete_old_attachments;
+    END IF;
+    delete from `reporter`.`attachment` where `at_added_timestamp`<DATE_SUB(current_timestamp,INTERVAL number_of_days DAY);
+END$$
+
 DROP PROCEDURE IF EXISTS `delete_old_logs`$$
 CREATE DEFINER=`admin`@`%` PROCEDURE `delete_old_logs` (IN `number_of_days` INT)  delete_old_logs:BEGIN
     SET FOREIGN_KEY_CHECKS=0;
@@ -450,6 +473,13 @@ CREATE DEFINER=`admin`@`%` PROCEDURE `delete_old_runs` (IN `number_of_days` INT,
         `reporter`.`suite`.`id`= `reporter`.`test`.`t_suite_id`  AND
         `reporter`.`log`.`l_test_id` = `reporter`.`test`.`id`);
     SET FOREIGN_KEY_CHECKS=1;
+END$$
+
+DROP PROCEDURE IF EXISTS `get_attachment`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_attachment` (IN `ATTACHMENTID` BIGINT)  BEGIN
+    select at_file_name as filename, at_content_type as contenttype, at_size as filesize, at_content as content
+    from `reporter`.`attachment`
+    where id = ATTACHMENTID;
 END$$
 
 DROP PROCEDURE IF EXISTS `get_blamed`$$
@@ -1043,6 +1073,16 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `get_runs` (IN `userenv` VARCHAR(255
 
 END$$
 
+DROP PROCEDURE IF EXISTS `get_run_attachments_list`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_run_attachments_list` (IN `RUNID` BIGINT)  BEGIN
+-- metadata only, content is loaded by get_attachment when the file is opened
+    select id as attachmentid, at_file_name as filename,
+           at_content_type as contenttype, at_size as filesize, at_added_timestamp as added
+    from `reporter`.`attachment`
+    where at_run_id = RUNID
+    order by id;
+END$$
+
 DROP PROCEDURE IF EXISTS `get_run_details`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_run_details` (IN `RUNID` INT)  BEGIN
 
@@ -1583,6 +1623,26 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `attachment`
+--
+
+DROP TABLE IF EXISTS `attachment`;
+CREATE TABLE IF NOT EXISTS `attachment` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `at_run_id` bigint(20) NOT NULL,
+  `at_file_name` varchar(255) NOT NULL,
+  `at_content_type` varchar(127) DEFAULT NULL,
+  `at_size` bigint(20) NOT NULL,
+  `at_content` longblob NOT NULL,
+  `at_added_timestamp` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_attachment_rid_idx` (`at_run_id`),
+  KEY `at_added_timestamp_idx` (`at_added_timestamp`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 KEY_BLOCK_SIZE=8 ROW_FORMAT=COMPRESSED;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `author`
 --
 
@@ -1863,6 +1923,12 @@ ALTER TABLE `test` ADD FULLTEXT KEY `t_test_name_ftidx` (`t_test_name`);
 --
 
 --
+-- Constraints for table `attachment`
+--
+ALTER TABLE `attachment`
+  ADD CONSTRAINT `fk_attachment_rid` FOREIGN KEY (`at_run_id`) REFERENCES `run` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
 -- Constraints for table `log`
 --
 ALTER TABLE `log`
@@ -1897,6 +1963,9 @@ DELIMITER $$
 --
 DROP EVENT IF EXISTS `close_runs_in_progress`$$
 CREATE DEFINER=`root`@`localhost` EVENT `close_runs_in_progress` ON SCHEDULE EVERY 3 MINUTE STARTS TIMESTAMP(NOW()+INTERVAL 1 MINUTE) ON COMPLETION NOT PRESERVE ENABLE DO call close_running$$
+
+DROP EVENT IF EXISTS `remove_old_attachments`$$
+CREATE DEFINER=`root`@`localhost` EVENT `remove_old_attachments` ON SCHEDULE EVERY 1 DAY STARTS CONCAT(DATE(NOW()+INTERVAL 1 DAY ), ' 00:00:00') ON COMPLETION NOT PRESERVE ENABLE DO call delete_old_attachments(30)$$
 
 DROP EVENT IF EXISTS `remove_old_dev_runs`$$
 CREATE DEFINER=`root`@`localhost` EVENT `remove_old_dev_runs` ON SCHEDULE EVERY 1 DAY STARTS CONCAT(DATE(NOW()+INTERVAL 1 DAY ), ' 00:00:00') ON COMPLETION NOT PRESERVE ENABLE DO call delete_old_runs(7,true)$$
