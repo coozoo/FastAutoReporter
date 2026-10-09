@@ -63,9 +63,9 @@ if(!$row)
 $contenttype=($row['contenttype'])?$row['contenttype']:'application/octet-stream';
 $basetype=strtolower(trim(explode(';',$contenttype)[0]));
 
-// only types that can't run scripts are shown inline, html/svg/xml etc. are always downloaded
-$inlinetypes=array('image/png','image/jpeg','image/gif','image/webp','image/bmp',
-		    'text/plain','text/csv','application/json','application/pdf');
+// types browser can show are opened inline, others are downloaded
+$inlinetypes=array('image/png','image/jpeg','image/gif','image/webp','image/bmp','image/svg+xml',
+		    'text/plain','text/csv','text/html','text/xml','application/xml','application/json','application/pdf');
 $inline=($download!="true" && in_array($basetype,$inlinetypes));
 
 if(($basetype=='application/json' || strpos($basetype,'text/')===0) && stripos($contenttype,'charset')===false)

@@ -32,6 +32,12 @@ $projectkey='JIRAPROJECT_XRAYCONNECTED';
 $xrayclientid='XRAYCLIENTID';
 $xrayclientsecret='XRAYCLIENTSECRET';
 /////////////////////////////////////////////
+// --- CUSTOM AI (only builds context for user to copy into any AI tool) ---
+$customAiEnabled=true;
+//context limits, prompts are the same as for copilot ($ai_git_projects / $copilot_system_prompt)
+$custom_ai_max_total_chars = 120000;
+$custom_ai_max_line_chars = 1500;
+
 // --- COPILOT AI CONFIGURATION ---
 $copilotEnabled=true;
 
