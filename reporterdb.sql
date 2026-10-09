@@ -275,7 +275,6 @@ BEGIN
 
     COMMIT WORK;
 
-END
 END$$
 
 DROP PROCEDURE IF EXISTS `close_running`$$
@@ -752,7 +751,6 @@ where ";
     EXECUTE statment1;
     DEALLOCATE PREPARE statment1;
 
-END
 END$$
 
 DROP PROCEDURE IF EXISTS `get_feature`$$
@@ -933,7 +931,6 @@ BEGIN
     order by f_feature_name, `test`.`id`;
 
 
-END
 END$$
 
 DROP PROCEDURE IF EXISTS `get_runs`$$
@@ -1529,7 +1526,6 @@ BEGIN
     -- FROM products
     -- WHERE pName = iName
 
-END
 END$$
 
 
